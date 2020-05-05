@@ -87,6 +87,7 @@
     <modules>
         <module>debezium-connector-cassandra</module>
         <module>debezium-connector-db2</module>
+        <module>debezium-connector-as400</module>
     </modules>
 
     <build>

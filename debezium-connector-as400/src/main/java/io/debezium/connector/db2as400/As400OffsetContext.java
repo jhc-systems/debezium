@@ -14,98 +14,100 @@ import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.util.Collect;
 
-public class As400OffsetContext implements OffsetContext  {
-	Logger log = LoggerFactory.getLogger(As400OffsetContext.class);
-	// TODO note believe there is a per journal offset
+public class As400OffsetContext implements OffsetContext {
+    Logger log = LoggerFactory.getLogger(As400OffsetContext.class);
+    // TODO note believe there is a per journal offset
     private static final String EVENT_SEQUENCE = "event_sequence";
-	
-	As400ConnectorConfig connectorConfig;
-	SourceInfo sourceInfo;
-	Long sequence;
-	
-	public As400OffsetContext(As400ConnectorConfig connectorConfig, Long sequence) {
-		super();
-		this.connectorConfig = connectorConfig;
-		sourceInfo = new SourceInfo(connectorConfig);
-		this.sequence = sequence;
-	}
-	public void setSequence(Long sequence) {
-		this.sequence = sequence;
-	}
 
-	@Override
-	public Map<String, ?> getPartition() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    As400ConnectorConfig connectorConfig;
+    SourceInfo sourceInfo;
+    Long sequence;
 
-	@Override
-	public Map<String, Long> getOffset() {
-		 if (sourceInfo.isSnapshot()) {
-			 // TODO handle snapshots
-			 return null;
-		 } else {
-			 //TODO persist progress
-			 return Collect.hashMapOf(
-		                SourceInfo.JOURNAL_KEY, 0L,
-		                EVENT_SEQUENCE, sequence);
-		 }
-	}
+    public As400OffsetContext(As400ConnectorConfig connectorConfig, Long sequence) {
+        super();
+        this.connectorConfig = connectorConfig;
+        sourceInfo = new SourceInfo(connectorConfig);
+        this.sequence = sequence;
+    }
 
-	@Override
-	public Schema getSourceInfoSchema() {
-		return sourceInfo.schema();
-	}
-	
-	public void setSourceTime(Date time) {
-		sourceInfo.setSourceTime(time.toInstant());
-	}
+    public void setSequence(Long sequence) {
+        this.sequence = sequence;
+    }
 
-	@Override
-	public Struct getSourceInfo() {
-		return sourceInfo.struct();
-	}
+    @Override
+    public Map<String, ?> getPartition() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	@Override
-	public boolean isSnapshotRunning() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+    @Override
+    public Map<String, Long> getOffset() {
+        if (sourceInfo.isSnapshot()) {
+            // TODO handle snapshots
+            return null;
+        }
+        else {
+            // TODO persist progress
+            return Collect.hashMapOf(
+                    SourceInfo.JOURNAL_KEY, 0L,
+                    EVENT_SEQUENCE, sequence);
+        }
+    }
 
-	@Override
-	public void markLastSnapshotRecord() {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public Schema getSourceInfoSchema() {
+        return sourceInfo.schema();
+    }
 
-	@Override
-	public void preSnapshotStart() {
-		// TODO Auto-generated method stub
-		
-	}
+    public void setSourceTime(Date time) {
+        sourceInfo.setSourceTime(time.toInstant());
+    }
 
-	@Override
-	public void preSnapshotCompletion() {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public Struct getSourceInfo() {
+        return sourceInfo.struct();
+    }
 
-	@Override
-	public void postSnapshotCompletion() {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public boolean isSnapshotRunning() {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
-	@Override
-	public void event(DataCollectionId collectionId, Instant timestamp) {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public void markLastSnapshotRecord() {
+        // TODO Auto-generated method stub
 
-	@Override
-	public TransactionContext getTransactionContext() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    }
+
+    @Override
+    public void preSnapshotStart() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void preSnapshotCompletion() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void postSnapshotCompletion() {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void event(DataCollectionId collectionId, Instant timestamp) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public TransactionContext getTransactionContext() {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
 }

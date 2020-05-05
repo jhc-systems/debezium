@@ -26,7 +26,7 @@ public class As400ChangeEventSourceFactory implements ChangeEventSourceFactory {
     private final As400DatabaseSchema schema;
 
     public As400ChangeEventSourceFactory(As400ConnectorConfig configuration, As400RpcConnection rpcConnection, As400JdbcConnection jdbcConnection,
-                                       ErrorHandler errorHandler, EventDispatcher<TableId> dispatcher, Clock clock, As400DatabaseSchema schema) {
+                                         ErrorHandler errorHandler, EventDispatcher<TableId> dispatcher, Clock clock, As400DatabaseSchema schema) {
         this.configuration = configuration;
         this.rpcConnection = rpcConnection;
         this.jdbcConnection = jdbcConnection;

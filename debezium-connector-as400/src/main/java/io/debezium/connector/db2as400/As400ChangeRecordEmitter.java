@@ -5,13 +5,12 @@ import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalChangeRecordEmitter;
 import io.debezium.util.Clock;
 
-
 public class As400ChangeRecordEmitter extends RelationalChangeRecordEmitter {
-	
+
     private final Operation operation;
     private final Object[] data;
     private final Object[] dataNext;
-	
+
     public As400ChangeRecordEmitter(OffsetContext offset, Operation operation, Object[] data, Object[] dataNext, Clock clock) {
         super(offset, clock);
 
@@ -20,19 +19,19 @@ public class As400ChangeRecordEmitter extends RelationalChangeRecordEmitter {
         this.dataNext = dataNext;
     }
 
-	@Override
-	protected Operation getOperation() {
-		return operation;
-	}
+    @Override
+    protected Operation getOperation() {
+        return operation;
+    }
 
-	@Override
-	protected Object[] getOldColumnValues() {
-		return data;
-	}
+    @Override
+    protected Object[] getOldColumnValues() {
+        return data;
+    }
 
-	@Override
-	protected Object[] getNewColumnValues() {
-		return dataNext;
-	}
-	
+    @Override
+    protected Object[] getNewColumnValues() {
+        return dataNext;
+    }
+
 }

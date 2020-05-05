@@ -27,3 +27,7 @@ phantomjsdriver.log
 generated-sources/
 
 /state/
+debezium-connector-as400/target/
+debezium-connector-as400/.classpath
+debezium-connector-as400/.project
+debezium-connector-as400/.settings/

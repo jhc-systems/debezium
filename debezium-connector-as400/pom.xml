@@ -9,8 +9,8 @@
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>io.debezium.connector.db2as400</groupId>
-	<artifactId>debezium-as400</artifactId>
+	<artifactId>debezium-connector-as400</artifactId>
+	<packaging>jar</packaging>
 
 	<dependencies>
 		<dependency>
@@ -77,6 +77,12 @@
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
             <scope>test</scope>
-        </dependency>        
+        </dependency>
+		<dependency>
+		      <groupId>org.awaitility</groupId>
+		      <artifactId>awaitility</artifactId>
+		      <version>4.0.2</version>
+		      <scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>
