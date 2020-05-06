@@ -7,6 +7,7 @@ package io.debezium.connector.db2as400;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
+import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
 import io.debezium.util.Metronome;
@@ -26,7 +28,9 @@ import io.debezium.util.Metronome;
  * </p>
  */
 public class As400StreamingChangeEventSource implements StreamingChangeEventSource {
-    private static Logger log = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
+    private static final String NO_TRANSACTION_ID = "00000000000000000000";
+
+	private static Logger log = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
     private HashMap<String, Object[]> beforeMap = new HashMap<>();
@@ -47,6 +51,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     private final As400OffsetContext offsetContext;
     private final Duration pollInterval;
     private final As400ConnectorConfig connectorConfig;
+    private final Map<String, TransactionContext> txMap = new HashMap<>();
 
     public As400StreamingChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext offsetContext,
                                            As400RpcConnection dataConnection, EventDispatcher<TableId> dispatcher,
@@ -78,54 +83,89 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     @Override
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
-        try {
+        Long offset = offsetContext.getOffset().get(SourceInfo.JOURNAL_KEY);
+        while (context.isRunning()) {
+	        try {
+	        	offset = dataConnection.getJournalEntries(offset, (nextOffset, r, tableId, member) -> {
+	                String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
+	                log.debug("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
+	                switch (entryType) {
+	                	case "C.SC": {
+	                		// start commit
+	                		String txId = r.getCommitCycleId();
+	                		log.debug("begin transaction: {}", txId);
+	                		TransactionContext txc = new TransactionContext();
+	                		txc.beginTransaction(txId);
+	                		txMap.put(txId, txc);
+	                	}
+	                	break;
+	                	case "C.CM": {
+	                		// end commit	                		
+	                		String txId = r.getCommitCycleId();
+	                		log.debug("end transaction: {}", txId);
+	                		TransactionContext txc = txMap.remove(txId);
+	                		if (txc != null) {
+	                			txc.endTransaction();
+	                		}
+	                	}
+	                	break;
+	                	case "R.UB": {
+	                        // before image
+	                        tableId.schema();
+	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+	                        Object[] dataBefore = r.getEntrySpecificData(recordFormat);
+	                        cacheBefore(tableId, r.getEntryDateString(), dataBefore);
+	                    }
+	                        break;
+	                    case "R.UP": {
+	                        // after image
+	                        // before image is meant to have been immediately before
+	                        Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
+	
+	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+	                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
+	                        offsetContext.setSequence(nextOffset);
+	                        offsetContext.setSourceTime(r.getEntryDateOrNow());
+	
+	                        System.out.println("send update event");
+	                        
+	                        String txId = r.getCommitCycleId();
+	                		TransactionContext txc = txMap.get(txId);
+	                		offsetContext.setTransaction(txc);
 
-            Long offset = offsetContext.getOffset().get(SourceInfo.JOURNAL_KEY);
+	                		dispatcher.dispatchDataChangeEvent(tableId,
+	                                new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
+	                    }
+	                        break;
+	                    case "R.PT": {
+	                        // record added
+	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+	                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
+	
+	                        offsetContext.setSequence(nextOffset);
+	                        offsetContext.setSourceTime(r.getEntryDateOrNow());
+	                        
+	                        String txId = r.getCommitCycleId();
+	                		TransactionContext txc = txMap.get(txId);
+	                		offsetContext.setTransaction(txc);
+	                		if (txc != null) {
+	                			txc.event(tableId);
+	                		}
 
-            dataConnection.getJournalEntries(offset, (r, tableId, member) -> {
-                System.out.println(r.getSequenceNumber() + " " + r.getJournalCode() + "." + r.getEntryType() + " " + tableId.table());
-                String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
-                switch (entryType) {
-                    case "R.UB": {
-                        // before image
-                        tableId.schema();
-                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                        Object[] dataBefore = r.getEntrySpecificData(recordFormat);
-                        cacheBefore(tableId, r.getEntryDateString(), dataBefore);
-                    }
-                        break;
-                    case "R.UP": {
-                        // after image
-                        // before image is meant to have been immediately before
-                        Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
-
-                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
-                        offsetContext.setSequence(offset);
-                        offsetContext.setSourceTime(r.getEntryDateOrNow());
-
-                        dispatcher.dispatchDataChangeEvent(tableId,
-                                new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
-                    }
-                        break;
-                    case "R.PT": {
-                        // record added
-                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
-
-                        offsetContext.setSequence(offset);
-                        offsetContext.setSourceTime(r.getEntryDateOrNow());
-
-                        dispatcher.dispatchDataChangeEvent(tableId,
-                                new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
-                    }
-                        break;
-                }
-            });
-
-        }
-        catch (Exception e) {
-            errorHandler.setProducerThrowable(e);
+	                        log.info("insert event id {} {}", offsetContext, txId);
+	                        dispatcher.dispatchDataChangeEvent(tableId,
+	                                new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
+	                    }
+	                        break;
+	                }
+	            }, () -> {
+	            	System.out.println("sleep");
+	            	metronome.pause();
+	            });	
+	        }
+	        catch (Exception e) {
+	            errorHandler.setProducerThrowable(e);
+	        }
         }
     }
 

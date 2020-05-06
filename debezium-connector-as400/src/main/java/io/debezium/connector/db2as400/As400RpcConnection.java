@@ -31,7 +31,9 @@ public class As400RpcConnection implements AutoCloseable {
 
     }
 
-    public void getJournalEntries(Long offset, BlockingRecieverConsumer consumer) throws RpcException {
+    public Long getJournalEntries(Long offset, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
+    	RpcException exception = null;
+        Long nextOffset = offset;
         try {
             RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
             ServiceProgramCall spc = new ServiceProgramCall(as400);
@@ -53,20 +55,31 @@ public class As400RpcConnection implements AutoCloseable {
                 Receiver r = rnj.getReceiver();
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
-                    String obj = r.getObject();
-                    String file = obj.substring(0, 10).trim();
-                    String lib = obj.substring(10, 20).trim();
-                    String member = obj.substring(20, 30).trim();
-                    TableId tableId = new TableId("", lib, file);
-
-                    consumer.accept(r, tableId, member);
+                	try {
+                		Long currentOffset = Long.valueOf(r.getSequenceNumber());
+                		nextOffset = currentOffset + 1;
+	                    String obj = r.getObject();
+	                    String file = obj.substring(0, 10).trim();
+	                    String lib = obj.substring(10, 20).trim();
+	                    String member = obj.substring(20, 30).trim();
+	                    TableId tableId = new TableId("", lib, file);
+	
+	                    consumer.accept(currentOffset, r, tableId, member);
+                	} catch (Exception e) {
+                		if (exception == null)
+                			exception = new RpcException("Failed to process record", e);
+                		else
+                			exception.addSuppressed(e); // TODO
+                	}
                 }
+            } else {
+            	nodataConsumer.accept();
             }
         }
         catch (Exception e) {
             throw new RpcException("Failed to process record", e);
         }
-
+        return nextOffset;
     }
 
     public DynamicRecordFormat getRecordFormat(TableId tableId, String member, As400DatabaseSchema schema) throws RpcException {
@@ -85,7 +98,11 @@ public class As400RpcConnection implements AutoCloseable {
     }
 
     public static interface BlockingRecieverConsumer {
-        void accept(Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
+        void accept(Long offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
+    }
+    
+    public static interface BlockingNoDataConsumer {
+        void accept() throws InterruptedException;
     }
 
     public static class RpcException extends Exception {

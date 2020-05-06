@@ -1,15 +1,21 @@
 package io.debezium.connector.db2as400;
 
+import org.apache.kafka.common.config.ConfigDef;
+
+import io.debezium.config.CommonConnectorConfig;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
 import io.debezium.connector.SourceInfoStructMaker;
+import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.relational.HistorizedRelationalDatabaseConnectorConfig;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.Selectors.TableIdToStringMapper;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.Tables.ColumnNameFilter;
 import io.debezium.relational.Tables.TableFilter;
+import io.debezium.relational.history.KafkaDatabaseHistory;
 
 //TODO  can we deliver HistorizedRelationalDatabaseConnectorConfig or should it be RelationalDatabaseConnectorConfig 
 public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
@@ -101,4 +107,25 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     public static Field.Set ALL_FIELDS = Field.setOf(
             JdbcConfiguration.HOSTNAME,
             USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
+    
+    
+    public static ConfigDef configDef() {
+        ConfigDef config = new ConfigDef();
+
+        Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME,
+                USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
+        
+        //TODO below borrowed form DB2
+        Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+                RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+                RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
+                Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX,
+                CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
+                CommonConnectorConfig.EVENT_PROCESSING_FAILURE_HANDLING_MODE);
+        Field.group(config, "Connector", CommonConnectorConfig.POLL_INTERVAL_MS, CommonConnectorConfig.MAX_BATCH_SIZE,
+                CommonConnectorConfig.MAX_QUEUE_SIZE, CommonConnectorConfig.SNAPSHOT_DELAY_MS, CommonConnectorConfig.SNAPSHOT_FETCH_SIZE,
+                RelationalDatabaseConnectorConfig.DECIMAL_HANDLING_MODE, RelationalDatabaseConnectorConfig.TIME_PRECISION_MODE);
+
+        return config;
+    }
 }

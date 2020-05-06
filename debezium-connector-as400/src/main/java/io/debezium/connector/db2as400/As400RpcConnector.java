@@ -52,8 +52,7 @@ public class As400RpcConnector extends SourceConnector {
 
     @Override
     public ConfigDef config() {
-        // TODO Auto-generated method stub
-        return null;
+        return As400ConnectorConfig.configDef();
     }
 
 }

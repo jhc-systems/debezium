@@ -1,7 +1,9 @@
 package io.debezium.connector.db2as400;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Schema;
@@ -11,13 +13,17 @@ import org.slf4j.LoggerFactory;
 
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
+import io.debezium.relational.TableId;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.util.Collect;
 
 public class As400OffsetContext implements OffsetContext {
     Logger log = LoggerFactory.getLogger(As400OffsetContext.class);
     // TODO note believe there is a per journal offset
-    private static final String EVENT_SEQUENCE = "event_sequence";
+    private static final String SERVER_PARTITION_KEY = "server";
+    public static final String EVENT_SEQUENCE = "event_sequence";
+    private final Map<String, String> partition;
+    private TransactionContext transactionContext;
 
     As400ConnectorConfig connectorConfig;
     SourceInfo sourceInfo;
@@ -25,6 +31,7 @@ public class As400OffsetContext implements OffsetContext {
 
     public As400OffsetContext(As400ConnectorConfig connectorConfig, Long sequence) {
         super();
+        partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         this.connectorConfig = connectorConfig;
         sourceInfo = new SourceInfo(connectorConfig);
         this.sequence = sequence;
@@ -33,11 +40,18 @@ public class As400OffsetContext implements OffsetContext {
     public void setSequence(Long sequence) {
         this.sequence = sequence;
     }
+    
+    public void setTransaction(TransactionContext transactionContext) {
+    	this.transactionContext = transactionContext;
+    }
+
+    public void endTransaction() {
+    	transactionContext = null;
+    }
 
     @Override
     public Map<String, ?> getPartition() {
-        // TODO Auto-generated method stub
-        return null;
+        return partition;
     }
 
     @Override
@@ -100,14 +114,13 @@ public class As400OffsetContext implements OffsetContext {
 
     @Override
     public void event(DataCollectionId collectionId, Instant timestamp) {
-        // TODO Auto-generated method stub
-
+        sourceInfo.setSourceTime(timestamp);
+//        sourceInfo.setTableId((TableId) collectionId);
     }
 
     @Override
     public TransactionContext getTransactionContext() {
-        // TODO Auto-generated method stub
-        return null;
+        return transactionContext;
     }
 
 }

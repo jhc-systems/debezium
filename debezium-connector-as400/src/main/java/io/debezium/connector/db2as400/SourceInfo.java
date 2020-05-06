@@ -37,32 +37,6 @@ public class SourceInfo extends BaseSourceInfo {
         this.databaseName = "db name";// connectorConfig.getDatabaseName();
     }
 
-    //
-    // /**
-    // * @param lsn - LSN of the change in the database log
-    // */
-    // public void setChangeLsn(Lsn lsn) {
-    // changeLsn = lsn;
-    // }
-    //
-    // public Lsn getChangeLsn() {
-    // return changeLsn;
-    // }
-    //
-    // public Lsn getCommitLsn() {
-    // return commitLsn;
-    // }
-    //
-    // /**
-    // * @param commitLsn - LSN of the {@code COMMIT} of the transaction whose part the change is
-    // */
-    // public void setCommitLsn(Lsn commitLsn) {
-    // this.commitLsn = commitLsn;
-    // }
-    //
-    // /**
-    // * @param instant a time at which the transaction commit was executed
-    // */
     public void setSourceTime(Instant instant) {
         sourceTime = instant;
     }

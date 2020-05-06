@@ -32,9 +32,60 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.slf4j</groupId>
+          <artifactId>log4j-over-slf4j</artifactId>
+          <version>${version.org.slf4j}</version>
         </dependency>
         
+   		<dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-runtime</artifactId>
+            <scope>provided</scope>
+		</dependency>
+   		<dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+             <version>1.2.3</version>
+            <scope>provided</scope>
+		</dependency>
+		<dependency>
+		  <groupId>org.codehaus.groovy</groupId>
+		  <artifactId>groovy</artifactId>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+  <groupId>org.osgi</groupId>
+  <artifactId>core</artifactId>
+  <version>4.3.0</version>
+  <scope>provided</scope>
+</dependency>
+<dependency>
+  <groupId>javax.mail</groupId>
+  <artifactId>mail</artifactId>
+  <version>1.4.7</version>
+  <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>org.abego.treelayout</groupId>
+    <artifactId>org.abego.treelayout.core</artifactId>
+    <version>1.0.1</version>
+  <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>org.antlr</groupId>
+    <artifactId>stringtemplate</artifactId>
+    <version>4.0.2</version>
+  <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>org.eclipse.jetty</groupId>
+    <artifactId>jetty-jmx</artifactId>
+    <version>9.4.20.v20190813</version>
+  <scope>provided</scope>    
+</dependency>
+
                 <!-- Testing -->
         <dependency>
             <groupId>io.debezium</groupId>
