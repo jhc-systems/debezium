@@ -19,11 +19,7 @@ public class As400EventMetadataProvider implements EventMetadataProvider {
         if (value == null) {
             return null;
         }
-        final Struct sourceInfo = value.getStruct(Envelope.FieldName.SOURCE);
-        if (source == null) {
-            return null;
-        }
-        final Long timestamp = sourceInfo.getInt64(SourceInfo.TIMESTAMP_KEY);
+        final Long timestamp = value.getInt64(SourceInfo.TIMESTAMP_KEY);
         return timestamp == null ? null : Instant.ofEpochMilli(timestamp);
     }
 

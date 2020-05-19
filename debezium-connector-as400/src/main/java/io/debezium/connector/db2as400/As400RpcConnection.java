@@ -27,8 +27,7 @@ public class As400RpcConnection implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        // TODO Auto-generated method stub
-
+    	this.as400.disconnectAllServices();
     }
 
     public Long getJournalEntries(Long offset, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {

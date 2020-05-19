@@ -36,6 +36,7 @@ public class FieldDescriptionToTable {
     public static Table toTable(TableId tableId, DynamicRecordFormat format) {
         ArrayList<Column> columns = new ArrayList<>();
         FieldDescription descriptions[] = format.getFieldDescriptions();
+        String[] keys = format.getKeyFieldNames();
         for (int i = 0; i < descriptions.length; i++) {
             ColumnEditor ce = Column.editor();
             FieldDescription description = descriptions[i];
@@ -128,6 +129,7 @@ public class FieldDescriptionToTable {
         Table table = Table.editor()
                 .tableId(tableId)
                 .addColumns(columns)
+                .setPrimaryKeyNames(keys)
                 .create();
         return table;
     }

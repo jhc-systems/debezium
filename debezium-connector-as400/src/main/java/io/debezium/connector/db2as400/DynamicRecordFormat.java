@@ -61,5 +61,9 @@ public class DynamicRecordFormat extends RecordFormat {
             fd = fileFormat[0].getFieldDescription(i);
             addFieldDescription(fd);
         }
+        String [] keys = fileFormat[0].getKeyFieldNames();
+        for (String key: keys) {
+            addKeyFieldDescription(key);
+        }
     }
 }

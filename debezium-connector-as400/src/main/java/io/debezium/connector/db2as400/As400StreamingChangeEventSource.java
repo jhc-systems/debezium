@@ -97,15 +97,18 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 	                		TransactionContext txc = new TransactionContext();
 	                		txc.beginTransaction(txId);
 	                		txMap.put(txId, txc);
+	                		dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
 	                	}
 	                	break;
 	                	case "C.CM": {
-	                		// end commit	                		
+	                		// end commit
+	                		// TOOD transaction must be provided by the OffsetContext
 	                		String txId = r.getCommitCycleId();
 	                		log.debug("end transaction: {}", txId);
 	                		TransactionContext txc = txMap.remove(txId);
 	                		if (txc != null) {
 	                			txc.endTransaction();
+		                		dispatcher.dispatchTransactionCommittedEvent(offsetContext);
 	                		}
 	                	}
 	                	break;
