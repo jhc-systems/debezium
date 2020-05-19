@@ -27,11 +27,11 @@ public class As400RpcConnection implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-    	this.as400.disconnectAllServices();
+        this.as400.disconnectAllServices();
     }
 
     public Long getJournalEntries(Long offset, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
-    	RpcException exception = null;
+        RpcException exception = null;
         Long nextOffset = offset;
         try {
             RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
@@ -54,25 +54,27 @@ public class As400RpcConnection implements AutoCloseable {
                 Receiver r = rnj.getReceiver();
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
-                	try {
-                		Long currentOffset = Long.valueOf(r.getSequenceNumber());
-                		nextOffset = currentOffset + 1;
-	                    String obj = r.getObject();
-	                    String file = obj.substring(0, 10).trim();
-	                    String lib = obj.substring(10, 20).trim();
-	                    String member = obj.substring(20, 30).trim();
-	                    TableId tableId = new TableId("", lib, file);
-	
-	                    consumer.accept(currentOffset, r, tableId, member);
-                	} catch (Exception e) {
-                		if (exception == null)
-                			exception = new RpcException("Failed to process record", e);
-                		else
-                			exception.addSuppressed(e); // TODO
-                	}
+                    try {
+                        Long currentOffset = Long.valueOf(r.getSequenceNumber());
+                        nextOffset = currentOffset + 1;
+                        String obj = r.getObject();
+                        String file = obj.substring(0, 10).trim();
+                        String lib = obj.substring(10, 20).trim();
+                        String member = obj.substring(20, 30).trim();
+                        TableId tableId = new TableId("", lib, file);
+
+                        consumer.accept(currentOffset, r, tableId, member);
+                    }
+                    catch (Exception e) {
+                        if (exception == null)
+                            exception = new RpcException("Failed to process record", e);
+                        else
+                            exception.addSuppressed(e); // TODO
+                    }
                 }
-            } else {
-            	nodataConsumer.accept();
+            }
+            else {
+                nodataConsumer.accept();
             }
         }
         catch (Exception e) {
@@ -99,7 +101,7 @@ public class As400RpcConnection implements AutoCloseable {
     public static interface BlockingRecieverConsumer {
         void accept(Long offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
     }
-    
+
     public static interface BlockingNoDataConsumer {
         void accept() throws InterruptedException;
     }

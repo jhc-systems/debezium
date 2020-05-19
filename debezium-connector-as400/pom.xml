@@ -39,6 +39,7 @@
           <version>${version.org.slf4j}</version>
         </dependency>
         
+
    		<dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-runtime</artifactId>
@@ -85,6 +86,7 @@
     <version>9.4.20.v20190813</version>
   <scope>provided</scope>    
 </dependency>
+
 
                 <!-- Testing -->
         <dependency>
@@ -136,4 +138,6 @@
 		      <scope>test</scope>
 		</dependency>
 	</dependencies>
+	
+
 </project>

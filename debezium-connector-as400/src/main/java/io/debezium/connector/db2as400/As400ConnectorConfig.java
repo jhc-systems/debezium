@@ -8,14 +8,12 @@ import io.debezium.config.Field;
 import io.debezium.connector.SourceInfoStructMaker;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
-import io.debezium.relational.HistorizedRelationalDatabaseConnectorConfig;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.Selectors.TableIdToStringMapper;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.Tables.ColumnNameFilter;
 import io.debezium.relational.Tables.TableFilter;
-import io.debezium.relational.history.KafkaDatabaseHistory;
 
 //TODO  can we deliver HistorizedRelationalDatabaseConnectorConfig or should it be RelationalDatabaseConnectorConfig 
 public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
@@ -107,15 +105,14 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     public static Field.Set ALL_FIELDS = Field.setOf(
             JdbcConfiguration.HOSTNAME,
             USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
-    
-    
+
     public static ConfigDef configDef() {
         ConfigDef config = new ConfigDef();
 
         Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME,
                 USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
-        
-        //TODO below borrowed form DB2
+
+        // TODO below borrowed form DB2
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
                 RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
                 RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,

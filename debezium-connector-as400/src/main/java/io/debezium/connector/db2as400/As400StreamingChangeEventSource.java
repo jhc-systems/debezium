@@ -30,7 +30,7 @@ import io.debezium.util.Metronome;
 public class As400StreamingChangeEventSource implements StreamingChangeEventSource {
     private static final String NO_TRANSACTION_ID = "00000000000000000000";
 
-	private static Logger log = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
+    private static Logger log = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
     private HashMap<String, Object[]> beforeMap = new HashMap<>();
@@ -85,90 +85,90 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
         Long offset = offsetContext.getOffset().get(SourceInfo.JOURNAL_KEY);
         while (context.isRunning()) {
-	        try {
-	        	offset = dataConnection.getJournalEntries(offset, (nextOffset, r, tableId, member) -> {
-	                String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
-	                log.debug("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
-	                switch (entryType) {
-	                	case "C.SC": {
-	                		// start commit
-	                		String txId = r.getCommitCycleId();
-	                		log.debug("begin transaction: {}", txId);
-	                		TransactionContext txc = new TransactionContext();
-	                		txc.beginTransaction(txId);
-	                		txMap.put(txId, txc);
-	                		dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
-	                	}
-	                	break;
-	                	case "C.CM": {
-	                		// end commit
-	                		// TOOD transaction must be provided by the OffsetContext
-	                		String txId = r.getCommitCycleId();
-	                		log.debug("end transaction: {}", txId);
-	                		TransactionContext txc = txMap.remove(txId);
-	                		if (txc != null) {
-	                			txc.endTransaction();
-		                		dispatcher.dispatchTransactionCommittedEvent(offsetContext);
-	                		}
-	                	}
-	                	break;
-	                	case "R.UB": {
-	                        // before image
-	                        tableId.schema();
-	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-	                        Object[] dataBefore = r.getEntrySpecificData(recordFormat);
-	                        cacheBefore(tableId, r.getEntryDateString(), dataBefore);
-	                    }
-	                        break;
-	                    case "R.UP": {
-	                        // after image
-	                        // before image is meant to have been immediately before
-	                        Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
-	
-	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-	                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
-	                        offsetContext.setSequence(nextOffset);
-	                        offsetContext.setSourceTime(r.getEntryDateOrNow());
-	
-	                        System.out.println("send update event");
-	                        
-	                        String txId = r.getCommitCycleId();
-	                		TransactionContext txc = txMap.get(txId);
-	                		offsetContext.setTransaction(txc);
+            try {
+                offset = dataConnection.getJournalEntries(offset, (nextOffset, r, tableId, member) -> {
+                    String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
+                    log.debug("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
+                    switch (entryType) {
+                        case "C.SC": {
+                            // start commit
+                            String txId = r.getCommitCycleId();
+                            log.debug("begin transaction: {}", txId);
+                            TransactionContext txc = new TransactionContext();
+                            txc.beginTransaction(txId);
+                            txMap.put(txId, txc);
+                            dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
+                        }
+                            break;
+                        case "C.CM": {
+                            // end commit
+                            // TOOD transaction must be provided by the OffsetContext
+                            String txId = r.getCommitCycleId();
+                            log.debug("end transaction: {}", txId);
+                            TransactionContext txc = txMap.remove(txId);
+                            if (txc != null) {
+                                txc.endTransaction();
+                                dispatcher.dispatchTransactionCommittedEvent(offsetContext);
+                            }
+                        }
+                            break;
+                        case "R.UB": {
+                            // before image
+                            tableId.schema();
+                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+                            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
+                            cacheBefore(tableId, r.getEntryDateString(), dataBefore);
+                        }
+                            break;
+                        case "R.UP": {
+                            // after image
+                            // before image is meant to have been immediately before
+                            Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
 
-	                		dispatcher.dispatchDataChangeEvent(tableId,
-	                                new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
-	                    }
-	                        break;
-	                    case "R.PT": {
-	                        // record added
-	                        DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-	                        Object[] dataNext = r.getEntrySpecificData(recordFormat);
-	
-	                        offsetContext.setSequence(nextOffset);
-	                        offsetContext.setSourceTime(r.getEntryDateOrNow());
-	                        
-	                        String txId = r.getCommitCycleId();
-	                		TransactionContext txc = txMap.get(txId);
-	                		offsetContext.setTransaction(txc);
-	                		if (txc != null) {
-	                			txc.event(tableId);
-	                		}
+                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+                            Object[] dataNext = r.getEntrySpecificData(recordFormat);
+                            offsetContext.setSequence(nextOffset);
+                            offsetContext.setSourceTime(r.getEntryDateOrNow());
 
-	                        log.info("insert event id {} {}", offsetContext, txId);
-	                        dispatcher.dispatchDataChangeEvent(tableId,
-	                                new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
-	                    }
-	                        break;
-	                }
-	            }, () -> {
-	            	System.out.println("sleep");
-	            	metronome.pause();
-	            });	
-	        }
-	        catch (Exception e) {
-	            errorHandler.setProducerThrowable(e);
-	        }
+                            System.out.println("send update event");
+
+                            String txId = r.getCommitCycleId();
+                            TransactionContext txc = txMap.get(txId);
+                            offsetContext.setTransaction(txc);
+
+                            dispatcher.dispatchDataChangeEvent(tableId,
+                                    new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
+                        }
+                            break;
+                        case "R.PT": {
+                            // record added
+                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+                            Object[] dataNext = r.getEntrySpecificData(recordFormat);
+
+                            offsetContext.setSequence(nextOffset);
+                            offsetContext.setSourceTime(r.getEntryDateOrNow());
+
+                            String txId = r.getCommitCycleId();
+                            TransactionContext txc = txMap.get(txId);
+                            offsetContext.setTransaction(txc);
+                            if (txc != null) {
+                                txc.event(tableId);
+                            }
+
+                            log.info("insert event id {} {}", offsetContext, txId);
+                            dispatcher.dispatchDataChangeEvent(tableId,
+                                    new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
+                        }
+                            break;
+                    }
+                }, () -> {
+                    System.out.println("sleep");
+                    metronome.pause();
+                });
+            }
+            catch (Exception e) {
+                errorHandler.setProducerThrowable(e);
+            }
         }
     }
 

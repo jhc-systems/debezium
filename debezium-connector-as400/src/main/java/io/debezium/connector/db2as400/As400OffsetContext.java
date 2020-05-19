@@ -3,7 +3,6 @@ package io.debezium.connector.db2as400;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Schema;
@@ -13,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
-import io.debezium.relational.TableId;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.util.Collect;
 
@@ -40,13 +38,13 @@ public class As400OffsetContext implements OffsetContext {
     public void setSequence(Long sequence) {
         this.sequence = sequence;
     }
-    
+
     public void setTransaction(TransactionContext transactionContext) {
-    	this.transactionContext = transactionContext;
+        this.transactionContext = transactionContext;
     }
 
     public void endTransaction() {
-    	transactionContext = null;
+        transactionContext = null;
     }
 
     @Override
@@ -115,7 +113,7 @@ public class As400OffsetContext implements OffsetContext {
     @Override
     public void event(DataCollectionId collectionId, Instant timestamp) {
         sourceInfo.setSourceTime(timestamp);
-//        sourceInfo.setTableId((TableId) collectionId);
+        // sourceInfo.setTableId((TableId) collectionId);
     }
 
     @Override

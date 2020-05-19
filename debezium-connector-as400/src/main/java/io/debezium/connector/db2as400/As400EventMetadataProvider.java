@@ -1,12 +1,10 @@
 package io.debezium.connector.db2as400;
 
 import java.time.Instant;
-
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Struct;
 
-import io.debezium.data.Envelope;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.schema.DataCollectionId;
@@ -26,11 +24,11 @@ public class As400EventMetadataProvider implements EventMetadataProvider {
     @Override
     public Map<String, String> getEventSourcePosition(DataCollectionId source, OffsetContext offset, Object key,
                                                       Struct value) {
-    	Map<String, ?> map = offset.getOffset();
-    	if (map.containsKey(As400OffsetContext.EVENT_SEQUENCE))
-	    	return Collect.hashMapOf(As400OffsetContext.EVENT_SEQUENCE,
-	    			((Long)map.get(As400OffsetContext.EVENT_SEQUENCE)).toString());
-    	return null;
+        Map<String, ?> map = offset.getOffset();
+        if (map.containsKey(As400OffsetContext.EVENT_SEQUENCE))
+            return Collect.hashMapOf(As400OffsetContext.EVENT_SEQUENCE,
+                    ((Long) map.get(As400OffsetContext.EVENT_SEQUENCE)).toString());
+        return null;
     }
 
     @Override

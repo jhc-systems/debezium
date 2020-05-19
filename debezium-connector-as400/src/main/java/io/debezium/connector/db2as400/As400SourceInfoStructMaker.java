@@ -19,10 +19,10 @@ public class As400SourceInfoStructMaker extends AbstractSourceInfoStructMaker<So
         super(connector, version, connectorConfig);
         schema = commonSchemaBuilder()
                 .name("io.debezium.connector.db2as400.Source")
-                //TODO add in table info
-//                .field(SourceInfo.SCHEMA_NAME_KEY, Schema.STRING_SCHEMA)
-//                .field(SourceInfo.TABLE_NAME_KEY, Schema.STRING_SCHEMA)
-                //TODO add in offset
+                // TODO add in table info
+                // .field(SourceInfo.SCHEMA_NAME_KEY, Schema.STRING_SCHEMA)
+                // .field(SourceInfo.TABLE_NAME_KEY, Schema.STRING_SCHEMA)
+                // TODO add in offset
                 .build();
     }
 
@@ -34,9 +34,8 @@ public class As400SourceInfoStructMaker extends AbstractSourceInfoStructMaker<So
     @Override
     public Struct struct(SourceInfo sourceInfo) {
         final Struct ret = super.commonStruct(sourceInfo);
-//                .put(SourceInfo.SCHEMA_NAME_KEY, sourceInfo.getTableId().schema())
-//                .put(SourceInfo.TABLE_NAME_KEY, sourceInfo.getTableId().table());
-
+        // .put(SourceInfo.SCHEMA_NAME_KEY, sourceInfo.getTableId().schema())
+        // .put(SourceInfo.TABLE_NAME_KEY, sourceInfo.getTableId().table());
 
         return ret;
     }
