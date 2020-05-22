@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.kafka.connect.data.Struct;
 
+import io.debezium.data.Envelope;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.schema.DataCollectionId;
@@ -17,7 +18,17 @@ public class As400EventMetadataProvider implements EventMetadataProvider {
         if (value == null) {
             return null;
         }
-        final Long timestamp = value.getInt64(SourceInfo.TIMESTAMP_KEY);
+        Long timestamp = value.getInt64(SourceInfo.TIMESTAMP_KEY);
+
+        if (timestamp == null) {
+	        final Struct sourceInfo = value.getStruct(Envelope.FieldName.SOURCE);
+	        if (source == null) {
+	            return null;
+	        }
+	        timestamp = sourceInfo.getInt64(SourceInfo.TIMESTAMP_KEY);
+        }
+
+        
         return timestamp == null ? null : Instant.ofEpochMilli(timestamp);
     }
 

@@ -24,7 +24,7 @@ import io.debezium.util.Clock;
 import io.debezium.util.SchemaNameAdjuster;
 
 public class As400ConnectorTask extends BaseSourceTask {
-    private static final Logger logger = LoggerFactory.getLogger(As400ConnectorTask.class);
+    private static final Logger log = LoggerFactory.getLogger(As400ConnectorTask.class);
     private volatile ChangeEventQueue<DataChangeEvent> queue;
     private static final String CONTEXT_NAME = "db2as400-server-connector-task";
     private As400DatabaseSchema schema;
@@ -41,9 +41,9 @@ public class As400ConnectorTask extends BaseSourceTask {
 
     @Override
     protected ChangeEventSourceCoordinator start(Configuration config) {
-        System.out.println("start connector task");
+    	log.debug("start connector task");
         final As400ConnectorConfig connectorConfig = new As400ConnectorConfig(config);
-        final SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(logger);
+        final SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(log);
 
         // TODO get list of DB ids - see Db2TaskContext
         CdcSourceTaskContext ctx = new CdcSourceTaskContext(connectorConfig.getContextName(), connectorConfig.getLogicalName(), null);

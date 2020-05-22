@@ -840,7 +840,6 @@ public class RJNE0100 {
                 temp = value.toString();
                 // integer will be passed as String, need to padLeft()
                 temp = padLeft(temp, 20);
-                System.out.println(temp);
             }
             else {
                 throw new IllegalArgumentException(String.format("Value for '%s' must be either '*FIRST' or an instance of Integer.", curKey.getDescription()));

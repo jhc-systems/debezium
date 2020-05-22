@@ -14,7 +14,6 @@ public class As400RpcConnector extends SourceConnector {
     private Map<String, String> props;
 
     public As400RpcConnector() {
-        System.out.println("As400RpcConnector constructed");
     }
 
     public As400RpcConnector(Configuration config) {

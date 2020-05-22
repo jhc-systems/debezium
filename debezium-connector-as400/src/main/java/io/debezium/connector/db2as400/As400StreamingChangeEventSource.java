@@ -84,6 +84,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
         Long offset = offsetContext.getOffset().get(SourceInfo.JOURNAL_KEY);
+        log.info("fetch next batch at offset {}", offset);
         while (context.isRunning()) {
             try {
                 offset = dataConnection.getJournalEntries(offset, (nextOffset, r, tableId, member) -> {
@@ -97,6 +98,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             TransactionContext txc = new TransactionContext();
                             txc.beginTransaction(txId);
                             txMap.put(txId, txc);
+                            log.info("start transaction id {} tx {} table {}", nextOffset, txId, tableId);
                             dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
                         }
                             break;
@@ -104,8 +106,8 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             // end commit
                             // TOOD transaction must be provided by the OffsetContext
                             String txId = r.getCommitCycleId();
-                            log.debug("end transaction: {}", txId);
                             TransactionContext txc = txMap.remove(txId);
+                            log.info("commit transaction id {} tx {} table {}", nextOffset, txId, tableId);
                             if (txc != null) {
                                 txc.endTransaction();
                                 dispatcher.dispatchTransactionCommittedEvent(offsetContext);
@@ -130,11 +132,12 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             offsetContext.setSequence(nextOffset);
                             offsetContext.setSourceTime(r.getEntryDateOrNow());
 
-                            System.out.println("send update event");
 
                             String txId = r.getCommitCycleId();
                             TransactionContext txc = txMap.get(txId);
                             offsetContext.setTransaction(txc);
+
+                            log.info("update event id {} tx {} table {}", nextOffset, txId, tableId);
 
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
@@ -155,14 +158,14 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                 txc.event(tableId);
                             }
 
-                            log.info("insert event id {} {}", offsetContext, txId);
+                            log.info("insert event id {} tx {} table {}", offsetContext.sequence, txId, tableId);
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
                         }
                             break;
                     }
                 }, () -> {
-                    System.out.println("sleep");
+                    log.debug("sleep");
                     metronome.pause();
                 });
             }
