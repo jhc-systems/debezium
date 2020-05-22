@@ -10,7 +10,7 @@ import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 
 public class As400JdbcConnection extends JdbcConnection {
-	private static final Logger log = LoggerFactory.getLogger(As400JdbcConnection.class);
+    private static final Logger log = LoggerFactory.getLogger(As400JdbcConnection.class);
     private static final String URL_PATTERN = "jdbc:as400://${" + JdbcConfiguration.HOSTNAME + "}/${" + JdbcConfiguration.DATABASE + "}";
 
     private static final ConnectionFactory FACTORY = JdbcConnection.patternBasedFactory(URL_PATTERN,

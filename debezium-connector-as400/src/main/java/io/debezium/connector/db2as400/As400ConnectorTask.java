@@ -41,7 +41,7 @@ public class As400ConnectorTask extends BaseSourceTask {
 
     @Override
     protected ChangeEventSourceCoordinator start(Configuration config) {
-    	log.debug("start connector task");
+        log.debug("start connector task");
         final As400ConnectorConfig connectorConfig = new As400ConnectorConfig(config);
         final SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(log);
 

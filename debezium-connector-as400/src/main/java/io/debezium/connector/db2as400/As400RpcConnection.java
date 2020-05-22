@@ -18,7 +18,7 @@ import io.debezium.relational.TableId;
  *
  */
 public class As400RpcConnection implements AutoCloseable {
-	private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
+    private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
     private As400ConnectorConfig config;
     private final AS400 as400;
@@ -61,16 +61,17 @@ public class As400RpcConnection implements AutoCloseable {
                     try {
                         Long currentOffset = Long.valueOf(r.getSequenceNumber());
                         if (currentOffset >= nextOffset) {
-                        	nextOffset = currentOffset + 1;
-	                        String obj = r.getObject();
-	                        String file = obj.substring(0, 10).trim();
-	                        String lib = obj.substring(10, 20).trim();
-	                        String member = obj.substring(20, 30).trim();
-	                        TableId tableId = new TableId("", lib, file);
-	
-	                        consumer.accept(currentOffset, r, tableId, member);
-                        } else
-                        	nodataConsumer.accept();
+                            nextOffset = currentOffset + 1;
+                            String obj = r.getObject();
+                            String file = obj.substring(0, 10).trim();
+                            String lib = obj.substring(10, 20).trim();
+                            String member = obj.substring(20, 30).trim();
+                            TableId tableId = new TableId("", lib, file);
+
+                            consumer.accept(currentOffset, r, tableId, member);
+                        }
+                        else
+                            nodataConsumer.accept();
 
                     }
                     catch (Exception e) {
@@ -88,7 +89,7 @@ public class As400RpcConnection implements AutoCloseable {
         catch (Exception e) {
             throw new RpcException("Failed to process record", e);
         }
-    	return nextOffset;
+        return nextOffset;
     }
 
     public DynamicRecordFormat getRecordFormat(TableId tableId, String member, As400DatabaseSchema schema) throws RpcException {

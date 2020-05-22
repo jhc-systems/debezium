@@ -139,5 +139,40 @@
 		</dependency>
 	</dependencies>
 	
+	<build>
+	<plugins>
+	            <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.31.0</version>
 
+                <configuration>
+                    <images>
+                        <image>
+                            <alias>debezium-connector-as400</alias>
+                            <name>eu.gcr.io/jhc-lighthouse/debezium-connector-as400</name>
+
+                            <build>
+                                <assembly>
+                                    <descriptor>docker-assembly.xml</descriptor>
+                                </assembly>
+                                <dockerFile>Dockerfile</dockerFile>
+                            </build>
+
+                        </image>
+                    </images>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>build</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+	
+	</plugins>
+	</build>
 </project>

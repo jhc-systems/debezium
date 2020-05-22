@@ -36,11 +36,12 @@ public class As400OffsetContext implements OffsetContext {
     }
 
     public void setSequence(Long sequence) {
-    	if (this.sequence > sequence) {
-    		log.error("loop");
-    	} else {
-    		this.sequence = sequence;
-    	}
+        if (this.sequence > sequence) {
+            log.error("loop");
+        }
+        else {
+            this.sequence = sequence;
+        }
     }
 
     public void setTransaction(TransactionContext transactionContext) {
@@ -59,12 +60,12 @@ public class As400OffsetContext implements OffsetContext {
     @Override
     public Map<String, Long> getOffset() {
         if (sourceInfo.isSnapshot()) {
-        	log.error("SHAPSHOTS not supported yet");
+            log.error("SHAPSHOTS not supported yet");
             // TODO handle snapshots
             return null;
         }
         else {
-        	log.debug("new offset {}", sequence);
+            log.debug("new offset {}", sequence);
             // TODO persist progress
             return Collect.hashMapOf(
                     SourceInfo.JOURNAL_KEY, 0L,

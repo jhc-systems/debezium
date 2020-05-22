@@ -132,7 +132,6 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             offsetContext.setSequence(nextOffset);
                             offsetContext.setSourceTime(r.getEntryDateOrNow());
 
-
                             String txId = r.getCommitCycleId();
                             TransactionContext txc = txMap.get(txId);
                             offsetContext.setTransaction(txc);
