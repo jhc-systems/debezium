@@ -161,6 +161,26 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
                         }
+                        break;
+                        case "R.DL": {
+                            // record deleted
+                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+                            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
+
+                            offsetContext.setSequence(nextOffset);
+                            offsetContext.setSourceTime(r.getEntryDateOrNow());
+
+                            String txId = r.getCommitCycleId();
+                            TransactionContext txc = txMap.get(txId);
+                            offsetContext.setTransaction(txc);
+                            if (txc != null) {
+                                txc.event(tableId);
+                            }
+
+                            log.info("delete event id {} tx {} table {}", offsetContext.sequence, txId, tableId);
+                            dispatcher.dispatchDataChangeEvent(tableId,
+                                    new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
+                        }
                             break;
                     }
                 }, () -> {
