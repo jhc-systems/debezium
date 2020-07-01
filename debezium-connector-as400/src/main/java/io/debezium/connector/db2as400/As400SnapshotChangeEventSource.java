@@ -1,11 +1,13 @@
 package io.debezium.connector.db2as400;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.debezium.pipeline.EventDispatcher;
-import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource.SnapshottingTask;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalSnapshotChangeEventSource;
@@ -15,6 +17,7 @@ import io.debezium.schema.SchemaChangeEvent;
 import io.debezium.util.Clock;
 
 public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEventSource {
+    private static Logger log = LoggerFactory.getLogger(As400SnapshotChangeEventSource.class);
 
     private final As400ConnectorConfig connectorConfig;
     private final As400JdbcConnection jdbcConnection;
@@ -34,12 +37,8 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected Set<TableId> getAllTableIds(RelationalSnapshotContext snapshotContext) throws Exception {
-        TableId t = new TableId(null, "MSDEVT", "TEST");
-        // TODO get tables
-        HashSet<TableId> s = new HashSet<>();
-        s.add(t);
-
-        return s;
+        Set<TableId> tables = jdbcConnection.readTableNames(null, null, null, new String[]{ "TABLE" });
+        return tables;
     }
 
     @Override
@@ -57,7 +56,28 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
     @Override
     protected void readTableStructure(ChangeEventSourceContext sourceContext, RelationalSnapshotContext snapshotContext)
             throws Exception {
-        // TODO Auto-generated method stub
+        Set<String> schemas = snapshotContext.capturedTables.stream()
+                .map(TableId::schema)
+                .collect(Collectors.toSet());
+
+        // reading info only for the schemas we're interested in as per the set of captured tables;
+        // while the passed table name filter alone would skip all non-included tables, reading the schema
+        // would take much longer that way
+        for (String schema : schemas) {
+            if (!sourceContext.isRunning()) {
+                throw new InterruptedException("Interrupted while reading structure of schema " + schema);
+            }
+
+            log.info("Reading structure of schema '{}'", schema);
+
+            jdbcConnection.readSchema(
+                    snapshotContext.tables,
+                    null,
+                    schema,
+                    connectorConfig.getTableFilters().dataCollectionFilter(),
+                    null,
+                    false);
+        }
     }
 
     @Override
