@@ -41,10 +41,11 @@ public class FieldDescriptionToTable {
             ColumnEditor ce = Column.editor();
             FieldDescription description = descriptions[i];
             ce.name(description.getFieldName());
+            // ce.charsetName("utf-8");
             int type = description.getDataType().getInstanceType();
             switch (type) {
                 case TYPE_ARRAY:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_BIN2:
                     ce.jdbcType(Types.SMALLINT);
                     ce.type("INTEGER");
@@ -61,7 +62,7 @@ public class FieldDescriptionToTable {
                     ce.length(20).scale(0);
                     break;
                 case TYPE_BYTE_ARRAY:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_FLOAT4:
                     ce.jdbcType(Types.FLOAT)
                             .type("FLOAT")
@@ -73,9 +74,9 @@ public class FieldDescriptionToTable {
                             .length(126);
                     break;
                 case TYPE_PACKED:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_STRUCTURE:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_TEXT:
                     ce.jdbcType(Types.VARCHAR)
                             .type("VARCHAR")
@@ -92,9 +93,9 @@ public class FieldDescriptionToTable {
                     ce.length(10).scale(0);
                     break;
                 case TYPE_ZONED:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_DECFLOAT:
-                    throw new IllegalArgumentException("unsupporte type " + description.getDataType());
+                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_BIN1:
                     ce.jdbcType(Types.SMALLINT);
                     ce.type("INTEGER");
