@@ -24,6 +24,9 @@ import static com.ibm.as400.access.AS400DataType.TYPE_ZONED;
 import java.sql.Types;
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ibm.as400.access.FieldDescription;
 
 import io.debezium.connector.db2as400.DynamicRecordFormat;
@@ -33,6 +36,7 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 
 public class FieldDescriptionToTable {
+    private static final Logger log = LoggerFactory.getLogger(FieldDescriptionToTable.class);
     public static Table toTable(TableId tableId, DynamicRecordFormat format) {
         ArrayList<Column> columns = new ArrayList<>();
         FieldDescription descriptions[] = format.getFieldDescriptions();
@@ -62,7 +66,9 @@ public class FieldDescriptionToTable {
                     ce.length(20).scale(0);
                     break;
                 case TYPE_BYTE_ARRAY:
-                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
+                	//TODO log error
+                	log.error("unsupported type TYPE_BYTE_ARRAY");
+                    throw new IllegalArgumentException("unsupported type TYPE_BYTE_ARRAY");
                 case TYPE_FLOAT4:
                     ce.jdbcType(Types.FLOAT)
                             .type("FLOAT")
@@ -73,9 +79,13 @@ public class FieldDescriptionToTable {
                             .type("DOUBLE")
                             .length(126);
                     break;
-                case TYPE_PACKED:
-                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
+                case TYPE_PACKED:// packed decimal
+                    ce.jdbcType(Types.DOUBLE)
+                    .type("DOUBLE")
+                    .length(126);
+                    break;
                 case TYPE_STRUCTURE:
+                	log.error("unsupported type TYPE_STRUCTURE");
                     throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_TEXT:
                     ce.jdbcType(Types.VARCHAR)
@@ -93,9 +103,15 @@ public class FieldDescriptionToTable {
                     ce.length(10).scale(0);
                     break;
                 case TYPE_ZONED:
-                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
+                    ce.jdbcType(Types.DOUBLE)
+                    .type("DOUBLE")
+                    .length(126);
+                    break;
                 case TYPE_DECFLOAT:
-                    throw new IllegalArgumentException("unsupported type " + description.getDataType());
+                    ce.jdbcType(Types.DOUBLE)
+                    .type("DOUBLE")
+                    .length(126);
+                    break;
                 case TYPE_BIN1:
                     ce.jdbcType(Types.SMALLINT);
                     ce.type("INTEGER");

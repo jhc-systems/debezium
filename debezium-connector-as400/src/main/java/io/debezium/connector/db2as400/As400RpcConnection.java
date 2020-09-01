@@ -8,15 +8,8 @@ import com.ibm.as400.access.ServiceProgramCall;
 
 import io.debezium.connector.db2as400.RJNE0100.Receiver;
 import io.debezium.connector.db2as400.RJNE0100.RetrieveKey;
-import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 
-/**
- * {@link JdbcConnection} extension to be used with IBM Db2
- *
- * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec, Peter Urbanetz
- *
- */
 public class As400RpcConnection implements AutoCloseable {
     private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
@@ -34,19 +27,26 @@ public class As400RpcConnection implements AutoCloseable {
         this.as400.disconnectAllServices();
     }
 
-    public Long getJournalEntries(Long offset, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
+    public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
-        Long nextOffset = offset;
         try {
+        	String receiver = "";
             RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
             ServiceProgramCall spc = new ServiceProgramCall(as400);
             rnj.addRetrieveCriteria(RetrieveKey.ENTTYP, "*ALL");
             rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, "*CURCHAIN");
-            if (offset == null || offset == 0) {
+            Integer sequence = offsetCtx.getSequence();
+    		if (offsetCtx.getJournal().length>0) {
+    			rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, offsetCtx.getJournal());
+    			receiver = String.format(" for receiver %s lib %s ", offsetCtx.getJournal());
+    		}
+            if (sequence == null || sequence.intValue() == 0) {
+            	log.info("fetch next batch from beginning{}, receiver");
                 rnj.addRetrieveCriteria(RetrieveKey.FROMENT, "*FIRST");
             }
             else {
-                rnj.addRetrieveCriteria(RetrieveKey.FROMENT, offset);
+                log.info("fetch next batch at offset {}{}", sequence, receiver);
+                rnj.addRetrieveCriteria(RetrieveKey.FROMENT, sequence);
             }
             spc.setProgram("/QSYS.LIB/QJOURNAL.SRVPGM", rnj.getProgramParameters());
             spc.setProcedureName("QjoRetrieveJournalEntries");
@@ -59,26 +59,20 @@ public class As400RpcConnection implements AutoCloseable {
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
                     try {
-                        Long currentOffset = Long.valueOf(r.getSequenceNumber());
-                        if (currentOffset >= nextOffset) {
-                            nextOffset = currentOffset + 1;
-                            String obj = r.getObject();
-                            String file = obj.substring(0, 10).trim();
-                            String lib = obj.substring(10, 20).trim();
-                            String member = obj.substring(20, 30).trim();
-                            TableId tableId = new TableId("", lib, file);
-
-                            consumer.accept(currentOffset, r, tableId, member);
-                        }
-                        else
-                            nodataConsumer.accept();
-
+                        Integer currentOffset = Integer.valueOf(r.getSequenceNumber());
+                        String obj = r.getObject();
+                        String file = obj.substring(0, 10).trim();
+                        String lib = obj.substring(10, 20).trim();
+                        String member = obj.substring(20, 30).trim();
+                        TableId tableId = new TableId("", lib, file);
+                        offsetCtx.setSequence(currentOffset+1);
+                        consumer.accept(currentOffset, r, tableId, member);
                     }
                     catch (Exception e) {
                         if (exception == null)
                             exception = new RpcException("Failed to process record", e);
                         else
-                            exception.addSuppressed(e); // TODO
+                            exception.addSuppressed(e); // TODO dump failed record for diagnostics
                     }
                 }
             }
@@ -89,7 +83,6 @@ public class As400RpcConnection implements AutoCloseable {
         catch (Exception e) {
             throw new RpcException("Failed to process record", e);
         }
-        return nextOffset;
     }
 
     public DynamicRecordFormat getRecordFormat(TableId tableId, String member, As400DatabaseSchema schema) throws RpcException {
@@ -108,7 +101,7 @@ public class As400RpcConnection implements AutoCloseable {
     }
 
     public static interface BlockingRecieverConsumer {
-        void accept(Long offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
+        void accept(Integer offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
     }
 
     public static interface BlockingNoDataConsumer {

@@ -2,7 +2,14 @@
 
 MYIP=$(awk 'END{print $1}' /etc/hosts)
 
-sed "s/MYIP/$MYIP/" connect-distributed.template > connect-distributed.properties
+echo "My ip address is $MYIP"
+
+# watch the replacement seperator for URLs
+sed -e "s#SCHEMA_URL#$SCHEMA_URL#" -e "s/GROUP_ID/$GROUP_ID/" \
+	-e "s/BOOTSTRAP_SERVERS/$BOOTSTRAP_SERVERS/" -e "s/REST_HOST_NAME/$REST_HOST_NAME/" \
+	connect-distributed-template.properties > connect-distributed.properties
+
+cat connect-distributed.properties
 
 jars=$(echo *jar|tr ' ' ':')
 java -cp $jars -Dlogback.configurationFile=logback.xml org.apache.kafka.connect.cli.ConnectDistributed connect-distributed.properties

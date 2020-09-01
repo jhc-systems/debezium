@@ -59,7 +59,7 @@ public class As400ConnectorTask extends BaseSourceTask {
         ErrorHandler errorHandler = new ErrorHandler(As400RpcConnector.class, connectorConfig.getLogicalName(), queue);
 
         // TODO find current offset
-        OffsetContext previousOffset = new As400OffsetContext(connectorConfig, 0L);
+        OffsetContext previousOffset = new As400OffsetContext(connectorConfig, 0, null, null);
 
         As400RpcConnection rpcConnection = new As400RpcConnection(connectorConfig);
         As400JdbcConnection jdbcConnection = new As400JdbcConnection(config);

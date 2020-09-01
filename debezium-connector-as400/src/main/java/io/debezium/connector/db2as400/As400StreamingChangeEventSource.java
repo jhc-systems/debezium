@@ -12,6 +12,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ibm.as400.access.FieldDescription;
+import com.ibm.as400.access.RecordFormat;
+
+import io.debezium.connector.db2as400.adaptors.JornalRecordFormats;
 import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
@@ -75,7 +79,9 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         String key = String.format("%s-%s-%s", tableId.schema(), tableId.table(), date);
         Object[] dataBefore = beforeMap.remove(key);
         if (dataBefore == null) {
-            log.warn("now before image found for {}", key);
+            log.info("before image found for {}", key);
+        } else {
+        	log.warn("already had before image for {}", key);
         }
         return dataBefore;
     }
@@ -83,13 +89,18 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     @Override
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
-        Long offset = offsetContext.getOffset().get(SourceInfo.JOURNAL_KEY);
-        log.info("fetch next batch at offset {}", offset);
+//        Integer offset = offsetContext.getSequence();
         while (context.isRunning()) {
             try {
-                offset = dataConnection.getJournalEntries(offset, (nextOffset, r, tableId, member) -> {
+                dataConnection.getJournalEntries(offsetContext, (nextOffset, r, tableId, member) -> {
+                    boolean includeSchema = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
+                    if (!includeSchema) {
+//                        log.info("table {} excluded skipping", tableId);
+                        return;
+                    }
+
                     String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
-                    log.debug("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
+                    log.info("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
                     switch (entryType) {
                         case "C.SC": {
                             // start commit
@@ -129,7 +140,6 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 
                             DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
                             Object[] dataNext = r.getEntrySpecificData(recordFormat);
-                            offsetContext.setSequence(nextOffset);
                             offsetContext.setSourceTime(r.getEntryDateOrNow());
 
                             String txId = r.getCommitCycleId();
@@ -142,12 +152,11 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                     new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
                         }
                             break;
+                        case "R.PX":
                         case "R.PT": {
                             // record added
                             DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
                             Object[] dataNext = r.getEntrySpecificData(recordFormat);
-
-                            offsetContext.setSequence(nextOffset);
                             offsetContext.setSourceTime(r.getEntryDateOrNow());
 
                             String txId = r.getCommitCycleId();
@@ -161,13 +170,12 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
                         }
-                        break;
+                            break;
                         case "R.DL": {
                             // record deleted
                             DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
                             Object[] dataBefore = r.getEntrySpecificData(recordFormat);
 
-                            offsetContext.setSequence(nextOffset);
                             offsetContext.setSourceTime(r.getEntryDateOrNow());
 
                             String txId = r.getCommitCycleId();
@@ -182,6 +190,16 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                     new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
                         }
                             break;
+                        case "J.NR": {
+							RecordFormat jrf = JornalRecordFormats.journalReciever();
+							FieldDescription[] fields = jrf.getFieldDescriptions();							
+							Object[] os = r.getEntrySpecificData(jrf);
+							
+							if (os.length > 1) {
+								offsetContext.setJournalReciever(os[0].toString(), os[1].toString());
+							}
+                        }
+                        break;
                     }
                 }, () -> {
                     log.debug("sleep");
@@ -189,6 +207,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                 });
             }
             catch (Exception e) {
+            	log.error("faile to process offset {}", offsetContext.getSequence(),  e);
                 errorHandler.setProducerThrowable(e);
             }
         }

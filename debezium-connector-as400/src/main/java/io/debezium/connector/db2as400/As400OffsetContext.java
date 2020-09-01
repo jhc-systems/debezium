@@ -22,26 +22,39 @@ public class As400OffsetContext implements OffsetContext {
     public static final String EVENT_SEQUENCE = "event_sequence";
     private final Map<String, String> partition;
     private TransactionContext transactionContext;
+	private static String[] empty = new String[] {};
 
     As400ConnectorConfig connectorConfig;
     SourceInfo sourceInfo;
-    Long sequence;
+    Integer sequence;
+    String journalReciever;
+    String journalLib;
 
-    public As400OffsetContext(As400ConnectorConfig connectorConfig, Long sequence) {
+    public As400OffsetContext(As400ConnectorConfig connectorConfig, Integer sequence, String journalReciever, String journalLib) {
         super();
         partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         this.connectorConfig = connectorConfig;
         sourceInfo = new SourceInfo(connectorConfig);
         this.sequence = sequence;
+		this.journalReciever = journalReciever;
+		this.journalLib = journalLib;
     }
 
-    public void setSequence(Long sequence) {
+    public void setSequence(Integer sequence) {
         if (this.sequence > sequence) {
-            log.error("loop");
+            log.error("loop currently {} set to {}", this.sequence, sequence, new Exception("please report this should never go backwards"));
         }
         else {
             this.sequence = sequence;
         }
+    }
+    
+    public Integer getSequence() {
+    	// todo get the offset from the map?
+//    	if (sequence == null) {
+//    		sequence = getOffset().get(SourceInfo.JOURNAL_KEY);
+//    	}
+    	return sequence;
     }
 
     public void setTransaction(TransactionContext transactionContext) {
@@ -58,7 +71,7 @@ public class As400OffsetContext implements OffsetContext {
     }
 
     @Override
-    public Map<String, Long> getOffset() {
+    public Map<String, Integer> getOffset() {
         if (sourceInfo.isSnapshot()) {
             log.error("SHAPSHOTS not supported yet");
             // TODO handle snapshots
@@ -68,7 +81,7 @@ public class As400OffsetContext implements OffsetContext {
             log.debug("new offset {}", sequence);
             // TODO persist progress
             return Collect.hashMapOf(
-                    SourceInfo.JOURNAL_KEY, 0L,
+                    SourceInfo.JOURNAL_KEY, 0,
                     EVENT_SEQUENCE, sequence);
         }
     }
@@ -127,5 +140,17 @@ public class As400OffsetContext implements OffsetContext {
     public TransactionContext getTransactionContext() {
         return transactionContext;
     }
+    
+	public void setJournalReciever(String journalReciever, String journalLib) {
+		this.journalReciever = journalReciever.trim();
+		this.journalLib = journalLib.trim();
+		this.sequence = 1;
+	}
 
+	public String[] getJournal() {
+		if (journalReciever != null && journalLib != null)
+			return new String[]{journalReciever, journalLib, journalReciever, journalLib};
+		else 
+			return empty;
+	}
 }

@@ -1,3 +1,4 @@
+
 package io.debezium.connector.db2as400;
 
 import java.text.ParseException;
@@ -15,6 +16,7 @@ import com.ibm.as400.access.AS400Text;
 import com.ibm.as400.access.AS400UnsignedBin4;
 import com.ibm.as400.access.FieldDescription;
 import com.ibm.as400.access.ProgramParameter;
+import com.ibm.as400.access.RecordFormat;
 
 /**
  * This class encapsulates the formatting of RJNE0100 parameters required when using the procedure 
@@ -391,7 +393,7 @@ public class RJNE0100 {
             return this.entryDetailStructure;
         }
 
-        private AS400Structure getEntrySpecificDataStructure(DynamicRecordFormat recFormat) {
+        private AS400Structure getEntrySpecificDataStructure(RecordFormat recFormat) {
             // if (this.entryDetailStructure == null){
             ArrayList<AS400DataType> structure = new ArrayList<AS400DataType>();
             structure.add(new AS400Text(5));
@@ -724,7 +726,7 @@ public class RJNE0100 {
             return (String) result[0];
         }
 
-        public Object[] getEntrySpecificData(DynamicRecordFormat recFormat) {
+        public Object[] getEntrySpecificData(RecordFormat recFormat) {
             Object[] result = (Object[]) receiver.getEntrySpecificDataStructure(recFormat).toObject(parameterList[0].getOutputData(),
                     entryHeaderStartPos + getDspToThsJrnEntData());
             Object[] result2 = null;

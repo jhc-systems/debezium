@@ -57,35 +57,78 @@
 		  <scope>provided</scope>
 		</dependency>
 		<dependency>
-  <groupId>org.osgi</groupId>
-  <artifactId>core</artifactId>
-  <version>4.3.0</version>
-  <scope>provided</scope>
-</dependency>
-<dependency>
-  <groupId>javax.mail</groupId>
-  <artifactId>mail</artifactId>
-  <version>1.4.7</version>
-  <scope>provided</scope>
-</dependency>
-<dependency>
-    <groupId>org.abego.treelayout</groupId>
-    <artifactId>org.abego.treelayout.core</artifactId>
-    <version>1.0.1</version>
-  <scope>provided</scope>
-</dependency>
-<dependency>
-    <groupId>org.antlr</groupId>
-    <artifactId>stringtemplate</artifactId>
-    <version>4.0.2</version>
-  <scope>provided</scope>
-</dependency>
-<dependency>
-    <groupId>org.eclipse.jetty</groupId>
-    <artifactId>jetty-jmx</artifactId>
-    <version>9.4.20.v20190813</version>
-  <scope>provided</scope>    
-</dependency>
+		  <groupId>org.osgi</groupId>
+		  <artifactId>core</artifactId>
+		  <version>4.3.0</version>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+		  <groupId>javax.mail</groupId>
+		  <artifactId>mail</artifactId>
+		  <version>1.4.7</version>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.abego.treelayout</groupId>
+		    <artifactId>org.abego.treelayout.core</artifactId>
+		    <version>1.0.1</version>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.antlr</groupId>
+		    <artifactId>stringtemplate</artifactId>
+		    <version>4.0.2</version>
+		  <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.eclipse.jetty</groupId>
+		    <artifactId>jetty-jmx</artifactId>
+		    <version>9.4.20.v20190813</version>
+		  <scope>provided</scope>    
+		</dependency>
+		<dependency>
+		    <groupId>io.confluent</groupId>
+		    <artifactId>kafka-connect-avro-converter</artifactId>
+		  	<scope>provided</scope>    
+		</dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+  			<scope>provided</scope>    
+  			<version>5.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+			<scope>provided</scope> 
+			<version>1.9.2</version>   
+        </dependency>
+        <dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+		    <scope>provided</scope> 
+		</dependency>
+        <dependency>
+		    <groupId>org.reflections</groupId>
+		    <artifactId>reflections</artifactId>
+		    <version>0.9.12</version>
+		    <scope>provided</scope> 
+		</dependency>
+         <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-core</artifactId>
+		    <scope>provided</scope> 
+        </dependency>       
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>log4j-over-slf4j</artifactId>
+		    <version>1.7.30</version>
+		    <scope>provided</scope>
+		</dependency>
+			<dependency>
+			  <groupId>org.apache.kafka</groupId>
+			  <artifactId>kafka_2.12</artifactId>
+			</dependency>
 
 
                 <!-- Testing -->
@@ -126,11 +169,11 @@
             <artifactId>fest-assert</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
+        <!-- dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
             <scope>test</scope>
-        </dependency>
+        </dependency-->
 		<dependency>
 		      <groupId>org.awaitility</groupId>
 		      <artifactId>awaitility</artifactId>
@@ -141,7 +184,27 @@
 	
 	<build>
 	<plugins>
-	            <plugin>
+	
+            <!-- plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin -->
+	
+            <plugin>
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>0.31.0</version>
@@ -150,7 +213,7 @@
                     <images>
                         <image>
                             <alias>debezium-connector-as400</alias>
-                            <name>eu.gcr.io/jhc-lighthouse/debezium-connector-as400</name>
+                            <name>eu.gcr.io/internal-257008/debezium-connector-as400:snapshot</name>
 
                             <build>
                                 <assembly>
