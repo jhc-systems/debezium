@@ -7,7 +7,11 @@ package io.debezium.connector.db2as400;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +42,8 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 
     private static final Logger LOGGER = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
     private HashMap<String, Object[]> beforeMap = new HashMap<>();
+    private static Set<String> alwaysProcess = Stream.of("J", "C")
+    		  .collect(Collectors.toCollection(HashSet::new));
 
     /**
      * Connection used for reading CDC tables.
@@ -93,9 +99,10 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         while (context.isRunning()) {
             try {
                 dataConnection.getJournalEntries(offsetContext, (nextOffset, r, tableId, member) -> {
-                    boolean includeSchema = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
-                    if (!includeSchema) {
-//                        log.info("table {} excluded skipping", tableId);
+                    boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
+                    
+                    if (!alwaysProcess.contains(r.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages 
+//                        log.debug("table {} excluded skipping", tableId);
                         return;
                     }
 
@@ -166,7 +173,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                 txc.event(tableId);
                             }
 
-                            log.info("insert event id {} tx {} table {}", offsetContext.sequence, txId, tableId);
+                            log.info("insert event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
                         }
@@ -185,7 +192,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                 txc.event(tableId);
                             }
 
-                            log.info("delete event id {} tx {} table {}", offsetContext.sequence, txId, tableId);
+                            log.info("delete event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
                             dispatcher.dispatchDataChangeEvent(tableId,
                                     new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
                         }
@@ -207,7 +214,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                 });
             }
             catch (Exception e) {
-            	log.error("faile to process offset {}", offsetContext.getSequence(),  e);
+            	log.error("failed to process offset {}", offsetContext.getPosition().toString(),  e);
                 errorHandler.setProducerThrowable(e);
             }
         }

@@ -1,6 +1,7 @@
 package io.debezium.connector.db2as400;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Struct;
@@ -9,7 +10,6 @@ import io.debezium.data.Envelope;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.schema.DataCollectionId;
-import io.debezium.util.Collect;
 
 public class As400EventMetadataProvider implements EventMetadataProvider {
 
@@ -31,20 +31,20 @@ public class As400EventMetadataProvider implements EventMetadataProvider {
         return timestamp == null ? null : Instant.ofEpochMilli(timestamp);
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Map<String, String> getEventSourcePosition(DataCollectionId source, OffsetContext offset, Object key,
                                                       Struct value) {
-        Map<String, ?> map = offset.getOffset();
-        if (map.containsKey(As400OffsetContext.EVENT_SEQUENCE))
-            return Collect.hashMapOf(As400OffsetContext.EVENT_SEQUENCE,
-                    ((Long) map.get(As400OffsetContext.EVENT_SEQUENCE)).toString());
-        return null;
+        Map<String, ?> map = offset.getOffset(); 
+        return (Map<String, String>)map;
     }
 
     @Override
     public String getTransactionId(DataCollectionId source, OffsetContext offset, Object key, Struct value) {
         // TODO Auto-generated method stub
-        return null;
+    	if (offset.getTransactionContext() == null)
+    		return null;
+        return offset.getTransactionContext().getTransactionId();
     }
 
 }

@@ -20,6 +20,12 @@
       <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>
     </encoder>
   </appender>
+  
+  <logger name="org.apache.kafka.connect.runtime.WorkerSourceTask" level="trace"/>
+    <logger name="io.debezium.pipeline.EventDispatcher" level="trace"/>
+    <logger name="io.debezium.connector.db2as400.As400StreamingChangeEventSource" level="trace"/>
+    
+  
 
   <root level="info">
     <appender-ref ref="STDOUT" />

@@ -10,6 +10,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.debezium.config.Field;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.schema.DataCollectionId;
@@ -19,42 +20,49 @@ public class As400OffsetContext implements OffsetContext {
     Logger log = LoggerFactory.getLogger(As400OffsetContext.class);
     // TODO note believe there is a per journal offset
     private static final String SERVER_PARTITION_KEY = "server";
-    public static final String EVENT_SEQUENCE = "event_sequence";
+    public static final String EVENT_SEQUENCE = "offset.event_sequence";
+    public static final String JOURNAL_LIB = "offset.journal_lib";
+    public static final String JOURNAL_RECEIVER = "offset.journal_receiver";
+    
+    public static final Field EVENT_SEQUENCE_FIELD = Field.create(EVENT_SEQUENCE);
+    public static final Field JOURNAL_LIB_FIELD = Field.create(JOURNAL_LIB);
+    public static final Field JOURNAL_RECEIVER_FIELD = Field.create(JOURNAL_RECEIVER);
+    
     private final Map<String, String> partition;
     private TransactionContext transactionContext;
 	private static String[] empty = new String[] {};
 
     As400ConnectorConfig connectorConfig;
     SourceInfo sourceInfo;
-    Integer sequence;
-    String journalReciever;
-    String journalLib;
+    JournalPosition position;
 
-    public As400OffsetContext(As400ConnectorConfig connectorConfig, Integer sequence, String journalReciever, String journalLib) {
+    public As400OffsetContext(As400ConnectorConfig connectorConfig) {
         super();
         partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
+        this.position = connectorConfig.getOffset();
         this.connectorConfig = connectorConfig;
         sourceInfo = new SourceInfo(connectorConfig);
-        this.sequence = sequence;
-		this.journalReciever = journalReciever;
-		this.journalLib = journalLib;
+    }
+    
+    public As400OffsetContext(As400ConnectorConfig connectorConfig, JournalPosition position) {
+        super();
+        partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
+        this.position = position;
+        this.connectorConfig = connectorConfig;
+        sourceInfo = new SourceInfo(connectorConfig);
     }
 
-    public void setSequence(Integer sequence) {
-        if (this.sequence > sequence) {
-            log.error("loop currently {} set to {}", this.sequence, sequence, new Exception("please report this should never go backwards"));
+    public void setSequence(Long sequence) {
+        if (position.getOffset() > sequence) {
+            log.error("loop currently {} set to {}", position.getOffset(), sequence, new Exception("please report this should never go backwards"));
         }
         else {
-            this.sequence = sequence;
+        	position.setOffset(sequence);
         }
     }
     
-    public Integer getSequence() {
-    	// todo get the offset from the map?
-//    	if (sequence == null) {
-//    		sequence = getOffset().get(SourceInfo.JOURNAL_KEY);
-//    	}
-    	return sequence;
+    public JournalPosition getPosition() {
+    	return position;
     }
 
     public void setTransaction(TransactionContext transactionContext) {
@@ -71,18 +79,20 @@ public class As400OffsetContext implements OffsetContext {
     }
 
     @Override
-    public Map<String, Integer> getOffset() {
+    public Map<String, ?> getOffset() {
         if (sourceInfo.isSnapshot()) {
             log.error("SHAPSHOTS not supported yet");
             // TODO handle snapshots
             return null;
         }
         else {
-            log.debug("new offset {}", sequence);
+            log.debug("new offset {}", position);
             // TODO persist progress
             return Collect.hashMapOf(
-                    SourceInfo.JOURNAL_KEY, 0,
-                    EVENT_SEQUENCE, sequence);
+            		As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
+            		As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
+            		As400OffsetContext.JOURNAL_LIB, position.getJournalLib()
+                    );
         }
     }
 
@@ -142,15 +152,31 @@ public class As400OffsetContext implements OffsetContext {
     }
     
 	public void setJournalReciever(String journalReciever, String journalLib) {
-		this.journalReciever = journalReciever.trim();
-		this.journalLib = journalLib.trim();
-		this.sequence = 1;
+		position.setJournalReciever(journalReciever, journalLib);
 	}
 
-	public String[] getJournal() {
-		if (journalReciever != null && journalLib != null)
-			return new String[]{journalReciever, journalLib, journalReciever, journalLib};
-		else 
-			return empty;
-	}
+	
+    public static class Loader implements OffsetContext.Loader {
+
+        private final As400ConnectorConfig connectorConfig;
+
+        public Loader(As400ConnectorConfig connectorConfig) {
+            this.connectorConfig = connectorConfig;
+        }
+
+        @Override
+        public Map<String, ?> getPartition() {
+            return Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
+        }
+
+        @Override
+        public OffsetContext load(Map<String, ?> map) {
+            Long offset = Long.valueOf((String)map.get(As400OffsetContext.EVENT_SEQUENCE));
+            String receiver = (String)map.get(As400OffsetContext.JOURNAL_RECEIVER);
+            String lib = (String)map.get(As400OffsetContext.JOURNAL_LIB);
+            
+            return new As400OffsetContext(connectorConfig, new JournalPosition(offset, receiver, lib));
+        }
+    }
+
 }

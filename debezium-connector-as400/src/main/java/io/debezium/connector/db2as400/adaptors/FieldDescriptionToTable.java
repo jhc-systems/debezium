@@ -40,11 +40,11 @@ public class FieldDescriptionToTable {
     public static Table toTable(TableId tableId, DynamicRecordFormat format) {
         ArrayList<Column> columns = new ArrayList<>();
         FieldDescription descriptions[] = format.getFieldDescriptions();
-        String[] keys = format.getKeyFieldNames();
+        String[] keys = sanitise(format.getKeyFieldNames());
         for (int i = 0; i < descriptions.length; i++) {
             ColumnEditor ce = Column.editor();
             FieldDescription description = descriptions[i];
-            ce.name(description.getFieldName());
+            ce.name(sanitise(description.getFieldName()));
             // ce.charsetName("utf-8");
             int type = description.getDataType().getInstanceType();
             switch (type) {
@@ -66,7 +66,6 @@ public class FieldDescriptionToTable {
                     ce.length(20).scale(0);
                     break;
                 case TYPE_BYTE_ARRAY:
-                	//TODO log error
                 	log.error("unsupported type TYPE_BYTE_ARRAY");
                     throw new IllegalArgumentException("unsupported type TYPE_BYTE_ARRAY");
                 case TYPE_FLOAT4:
@@ -149,5 +148,20 @@ public class FieldDescriptionToTable {
                 .setPrimaryKeyNames(keys)
                 .create();
         return table;
+    }
+    
+    private static String[] sanitise(String[] names) {
+    	String[] snames = new String[names.length];
+    	for (int i=0; i < names.length; i ++) {
+    		snames[i] = sanitise(names[i]);
+    	}
+    	return snames;
+    }
+    
+    private static String sanitise(String name) {
+    	return name.replaceAll("@", "_a_")
+    			.replaceAll("$", "_d_")
+    			.replaceAll("#", "_h_")
+    			.replaceAll(" ", "_s_");
     }
 }

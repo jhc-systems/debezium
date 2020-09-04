@@ -35,18 +35,18 @@ public class As400RpcConnection implements AutoCloseable {
             ServiceProgramCall spc = new ServiceProgramCall(as400);
             rnj.addRetrieveCriteria(RetrieveKey.ENTTYP, "*ALL");
             rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, "*CURCHAIN");
-            Integer sequence = offsetCtx.getSequence();
-    		if (offsetCtx.getJournal().length>0) {
-    			rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, offsetCtx.getJournal());
-    			receiver = String.format(" for receiver %s lib %s ", offsetCtx.getJournal());
+            JournalPosition position = offsetCtx.getPosition();
+            log.info("fetch from position: {}", position.toString());
+    		if (position.getJournal().length>0) {
+    			rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, position.getJournal());
+    			receiver = String.format(" for receiver %s lib %s ", position.getJournal());
     		}
-            if (sequence == null || sequence.intValue() == 0) {
-            	log.info("fetch next batch from beginning{}, receiver");
+    		Long offset = position.getOffset();
+            if (offset == 0) {
                 rnj.addRetrieveCriteria(RetrieveKey.FROMENT, "*FIRST");
             }
             else {
-                log.info("fetch next batch at offset {}{}", sequence, receiver);
-                rnj.addRetrieveCriteria(RetrieveKey.FROMENT, sequence);
+                rnj.addRetrieveCriteria(RetrieveKey.FROMENT, offset);
             }
             spc.setProgram("/QSYS.LIB/QJOURNAL.SRVPGM", rnj.getProgramParameters());
             spc.setProcedureName("QjoRetrieveJournalEntries");
@@ -59,7 +59,7 @@ public class As400RpcConnection implements AutoCloseable {
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
                     try {
-                        Integer currentOffset = Integer.valueOf(r.getSequenceNumber());
+                    	Long currentOffset = Long.valueOf(r.getSequenceNumber());
                         String obj = r.getObject();
                         String file = obj.substring(0, 10).trim();
                         String lib = obj.substring(10, 20).trim();
@@ -101,7 +101,7 @@ public class As400RpcConnection implements AutoCloseable {
     }
 
     public static interface BlockingRecieverConsumer {
-        void accept(Integer offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
+        void accept(Long offset, Receiver r, TableId tableId, String member) throws RpcException, InterruptedException;
     }
 
     public static interface BlockingNoDataConsumer {
