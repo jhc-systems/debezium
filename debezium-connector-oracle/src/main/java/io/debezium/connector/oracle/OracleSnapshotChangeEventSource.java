@@ -95,7 +95,7 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
 
                 LOGGER.debug("Locking table {}", tableId);
 
-                statement.execute("LOCK TABLE " + tableId.schema() + "." + tableId.table() + " IN EXCLUSIVE MODE");
+                statement.execute("LOCK TABLE " + quote(tableId) + " IN EXCLUSIVE MODE");
             }
         }
     }
@@ -217,15 +217,23 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
             Object res = rs.getObject(1);
             String ddl = ((Clob) res).getSubString(1, (int) ((Clob) res).length());
 
-            return new SchemaChangeEvent(snapshotContext.offset.getPartition(), snapshotContext.offset.getOffset(), snapshotContext.catalogName,
-                    table.id().schema(), ddl, table, SchemaChangeEventType.CREATE, true);
+            return new SchemaChangeEvent(
+                    snapshotContext.offset.getPartition(),
+                    snapshotContext.offset.getOffset(),
+                    snapshotContext.offset.getSourceInfo(),
+                    snapshotContext.catalogName,
+                    table.id().schema(),
+                    ddl,
+                    table,
+                    SchemaChangeEventType.CREATE,
+                    true);
         }
     }
 
     @Override
     protected Optional<String> getSnapshotSelect(SnapshotContext snapshotContext, TableId tableId) {
         long snapshotOffset = (Long) snapshotContext.offset.getOffset().get("scn");
-        return Optional.of("SELECT * FROM " + tableId.schema() + "." + tableId.table() + " AS OF SCN " + snapshotOffset);
+        return Optional.of("SELECT * FROM " + quote(tableId) + " AS OF SCN " + snapshotOffset);
     }
 
     @Override
@@ -233,6 +241,10 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
         if (connectorConfig.getPdbName() != null) {
             jdbcConnection.resetSessionToCdb();
         }
+    }
+
+    private static String quote(TableId tableId) {
+        return TableId.parse(tableId.schema() + "." + tableId.table(), true).toDoubleQuotedString();
     }
 
     /**

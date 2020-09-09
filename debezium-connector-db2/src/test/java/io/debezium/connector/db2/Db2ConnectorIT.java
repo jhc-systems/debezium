@@ -5,7 +5,11 @@
  */
 package io.debezium.connector.db2;
 
+import static io.debezium.connector.db2.util.TestHelper.TYPE_LENGTH_PARAMETER_KEY;
+import static io.debezium.connector.db2.util.TestHelper.TYPE_NAME_PARAMETER_KEY;
+import static io.debezium.connector.db2.util.TestHelper.TYPE_SCALE_PARAMETER_KEY;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 import static org.junit.Assert.assertNull;
 
 import java.sql.SQLException;
@@ -14,10 +18,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.fest.assertions.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +31,11 @@ import io.debezium.connector.db2.Db2ConnectorConfig.SnapshotMode;
 import io.debezium.connector.db2.util.TestHelper;
 import io.debezium.data.Envelope;
 import io.debezium.data.SchemaAndValueField;
+import io.debezium.data.VerifyRecord;
 import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.junit.logging.LogInterceptor;
+import io.debezium.schema.DatabaseSchema;
 import io.debezium.util.Testing;
 
 /**
@@ -48,9 +54,15 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         connection.execute(
                 "CREATE TABLE tablea (id int not null, cola varchar(30), primary key (id))",
                 "CREATE TABLE tableb (id int not null, colb varchar(30), primary key (id))",
+                "CREATE TABLE masked_hashed_column_table (id int not null, name varchar(255), name2 varchar(255), name3 varchar(20), primary key (id))",
+                "CREATE TABLE truncated_column_table (id int not null, name varchar(20), primary key (id))",
+                "CREATE TABLE dt_table (id int not null, c1 int, c2 int, c3a numeric(5,2), c3b varchar(128), f1 float(10), f2 decimal(8,4), primary key(id))",
                 "INSERT INTO tablea VALUES(1, 'a')");
         TestHelper.enableTableCdc(connection, "TABLEA");
         TestHelper.enableTableCdc(connection, "TABLEB");
+        TestHelper.enableTableCdc(connection, "MASKED_HASHED_COLUMN_TABLE");
+        TestHelper.enableTableCdc(connection, "TRUNCATED_COLUMN_TABLE");
+        TestHelper.enableTableCdc(connection, "DT_TABLE");
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
         Testing.Print.enable();
@@ -60,9 +72,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     public void after() throws SQLException {
         if (connection != null) {
             TestHelper.disableDbCdc(connection);
+            TestHelper.disableTableCdc(connection, "DT_TABLE");
+            TestHelper.disableTableCdc(connection, "TRUNCATED_COLUMN_TABLE");
+            TestHelper.disableTableCdc(connection, "MASKED_HASHED_COLUMN_TABLE");
             TestHelper.disableTableCdc(connection, "TABLEB");
             TestHelper.disableTableCdc(connection, "TABLEA");
-            connection.execute("DROP TABLE tablea", "DROP TABLE tableb");
+            connection.execute("DROP TABLE tablea", "DROP TABLE tableb", "DROP TABLE masked_hashed_column_table", "DROP TABLE truncated_column_table",
+                    "DROP TABLE dt_table");
             connection.execute("DELETE FROM ASNCDC.IBMSNAP_REGISTER");
             connection.execute("DELETE FROM ASNCDC.IBMQREP_COLVERSION");
             connection.execute("DELETE FROM ASNCDC.IBMQREP_TABVERSION");
@@ -109,8 +125,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
         final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(deleteTableA).isNullOrEmpty();
-        Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
+        assertThat(deleteTableA).isNullOrEmpty();
+        assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final SourceRecord deleteRecord = deleteTableB.get(i);
@@ -154,8 +170,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final SourceRecords records = consumeRecordsByTopic(6);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA).hasSize(3);
-        Assertions.assertThat(tableB).hasSize(3);
+        assertThat(tableA).hasSize(3);
+        assertThat(tableB).hasSize(3);
 
         final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
@@ -264,8 +280,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final List<SourceRecord> tableA = records1.recordsForTopic("testdb.DB2INST1.TABLEA");
         tableA.addAll(records2.recordsForTopic("testdb.DB2INST1.TABLEA"));
         final List<SourceRecord> tableB = records2.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA).hasSize(3);
-        Assertions.assertThat(tableB).hasSize(3);
+        assertThat(tableA).hasSize(3);
+        assertThat(tableB).hasSize(3);
 
         final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
@@ -399,8 +415,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
 
-        Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
-        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableA).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = i + ID_RESTART;
@@ -437,7 +453,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final int TABLES = 1;
         final int ID_START = 10;
         final Configuration config = TestHelper.defaultConfig()
-                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
                 .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
                 .build();
         connection.execute(
@@ -466,8 +482,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
-        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableA == null || tableA.isEmpty()).isTrue();
+        assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
         stopConnector();
     }
@@ -507,8 +523,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
-        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableA == null || tableA.isEmpty()).isTrue();
+        assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
         stopConnector();
     }
@@ -635,8 +651,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
         tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
 
-        Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
-        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableA).hasSize(RECORDS_PER_TABLE);
+        assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = i + ID_RESTART;
@@ -692,7 +708,146 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertConnectorIsRunning();
         waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
 
-        stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isTrue());
+        stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(DatabaseSchema.NO_CAPTURED_DATA_COLLECTIONS_WARNING)).isTrue());
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldConsumeEventsWithMaskedAndTruncatedColumns() throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
+                .with("column.mask.with.12.chars", "DB2INST1.MASKED_HASHED_COLUMN_TABLE.NAME")
+                .with("column.mask.hash.SHA-256.with.salt.CzQMA0cB5K", "DB2INST1.MASKED_HASHED_COLUMN_TABLE.NAME2,DB2INST1.MASKED_HASHED_COLUMN_TABLE.NAME3")
+                .with("column.truncate.to.4.chars", "DB2INST1.TRUNCATED_COLUMN_TABLE.NAME")
+                .build();
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        connection.setAutoCommit(false);
+
+        connection.execute("INSERT INTO masked_hashed_column_table (id, name, name2, name3) VALUES (10, 'some_name', 'test', 'test')");
+        connection.execute("INSERT INTO truncated_column_table VALUES(11, 'some_name')");
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(2);
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.MASKED_HASHED_COLUMN_TABLE");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TRUNCATED_COLUMN_TABLE");
+
+        assertThat(tableA).hasSize(1);
+        SourceRecord record = tableA.get(0);
+        VerifyRecord.isValidInsert(record, "ID", 10);
+
+        Struct value = (Struct) record.value();
+        if (value.getStruct("after") != null) {
+            Struct after = value.getStruct("after");
+            assertThat(after.getString("NAME")).isEqualTo("************");
+            assertThat(after.getString("NAME2")).isEqualTo("8e68c68edbbac316dfe2f6ada6b0d2d3e2002b487a985d4b7c7c82dd83b0f4d7");
+            assertThat(after.getString("NAME3")).isEqualTo("8e68c68edbbac316dfe2");
+        }
+
+        assertThat(tableB).hasSize(1);
+        record = tableB.get(0);
+        VerifyRecord.isValidInsert(record, "ID", 11);
+
+        value = (Struct) record.value();
+        if (value.getStruct("after") != null) {
+            assertThat(value.getStruct("after").getString("NAME")).isEqualTo("some");
+        }
+
+        stopConnector();
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldRewriteIdentityKey() throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
+                .with(Db2ConnectorConfig.MSG_KEY_COLUMNS, "(.*).tablea:id,cola")
+                .build();
+
+        start(Db2Connector.class, config);
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        connection.setAutoCommit(false);
+
+        connection.execute("INSERT INTO tablea (id, cola) values (100, 'hundred')");
+
+        SourceRecords records = consumeRecordsByTopic(1);
+        List<SourceRecord> recordsForTopic = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        assertThat(recordsForTopic.get(0).key()).isNotNull();
+        Struct key = (Struct) recordsForTopic.get(0).key();
+        assertThat(key.get("ID")).isNotNull();
+        assertThat(key.get("COLA")).isNotNull();
+
+        stopConnector();
+    }
+
+    @Test
+    @FixFor({ "DBZ-1916", "DBZ-1830" })
+    public void shouldPropagateSourceTypeByDatatype() throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
+                .with("datatype.propagate.source.type", ".+\\.NUMERIC,.+\\.VARCHAR,.+\\.DECIMAL,.+\\.REAL")
+                .build();
+
+        start(Db2Connector.class, config);
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        connection.setAutoCommit(false);
+        connection.execute("INSERT INTO dt_table (id,c1,c2,c3a,c3b,f1,f2) values (1,123,456,789.01,'test',1.228,234.56)");
+
+        final SourceRecords records = consumeRecordsByTopic(1);
+
+        List<SourceRecord> recordsForTopic = records.recordsForTopic("testdb.DB2INST1.DT_TABLE");
+        assertThat(recordsForTopic).hasSize(1);
+
+        final Field before = recordsForTopic.get(0).valueSchema().field("before");
+
+        assertThat(before.schema().field("ID").schema().parameters()).isNull();
+        assertThat(before.schema().field("C1").schema().parameters()).isNull();
+        assertThat(before.schema().field("C2").schema().parameters()).isNull();
+
+        assertThat(before.schema().field("C3A").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "DECIMAL"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "5"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "2"));
+
+        assertThat(before.schema().field("C3B").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "VARCHAR"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "128"));
+
+        assertThat(before.schema().field("F2").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "DECIMAL"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "8"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "4"));
+
+        assertThat(before.schema().field("F1").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "REAL"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "24"));
     }
 
     private void assertRecord(Struct record, List<SchemaAndValueField> expected) {

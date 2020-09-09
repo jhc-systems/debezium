@@ -40,6 +40,8 @@ public class CommitLogProcessor extends AbstractProcessor {
     private final boolean latestOnly;
     private final CommitLogProcessorMetrics metrics = new CommitLogProcessorMetrics();
     private boolean initial = true;
+    private final boolean errorCommitLogReprocessEnabled;
+    private final CommitLogTransfer commitLogTransfer;
 
     public CommitLogProcessor(CassandraConnectorContext context) throws IOException {
         super(NAME, 0);
@@ -63,6 +65,8 @@ public class CommitLogProcessor extends AbstractProcessor {
             }
         };
         latestOnly = context.getCassandraConnectorConfig().latestCommitLogOnly();
+        errorCommitLogReprocessEnabled = context.getCassandraConnectorConfig().errorCommitLogReprocessEnabled();
+        commitLogTransfer = context.getCassandraConnectorConfig().getCommitLogTransfer();
     }
 
     @Override
@@ -77,11 +81,14 @@ public class CommitLogProcessor extends AbstractProcessor {
 
     @Override
     public void process() throws IOException, InterruptedException {
+        LOGGER.debug("Processing commitLogFiles while initial is {}", initial);
         if (latestOnly) {
             processLastModifiedCommitLog();
             throw new InterruptedException();
         }
-
+        if (errorCommitLogReprocessEnabled) {
+            commitLogTransfer.getErrorCommitLogFiles();
+        }
         if (initial) {
             LOGGER.info("Reading existing commit logs in {}", cdcDir);
             File[] commitLogFiles = CommitLogUtil.getCommitLogs(cdcDir);
@@ -114,9 +121,13 @@ public class CommitLogProcessor extends AbstractProcessor {
                 }
                 LOGGER.info("Successfully processed commit log {}", file.getName());
             }
-            catch (IOException e) {
+            catch (Exception e) {
                 if (!latestOnly) {
                     queue.enqueue(new EOFEvent(file, false));
+                }
+                if (commitLogTransfer.getClass().getName().equals(CassandraConnectorConfig.DEFAULT_COMMIT_LOG_TRANSFER_CLASS)) {
+                    LOGGER.error("Error occurred while processing commit log " + file.getName(), e);
+                    throw e;
                 }
                 LOGGER.warn("Error occurred while processing commit log " + file.getName(), e);
             }

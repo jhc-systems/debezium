@@ -35,6 +35,10 @@ public class CommitLogPostProcessorTest extends EmbeddedCassandraConnectorTestBa
             public void onErrorTransfer(File file) {
                 errorFileCount.incrementAndGet();
             }
+
+            @Override
+            public void getErrorCommitLogFiles() {
+            }
         };
         CassandraConnectorConfig config = spy(new CassandraConnectorConfig(Configuration.from(generateDefaultConfigMap())));
         when(config.getCommitLogTransfer()).thenReturn(myTransfer);

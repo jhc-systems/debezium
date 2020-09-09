@@ -22,6 +22,7 @@ import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
  * type of a column in a Cassandra table.
  */
 public class CellData implements KafkaRecord {
+
     /**
      * The type of a column in a Cassandra table
      */
@@ -66,15 +67,16 @@ public class CellData implements KafkaRecord {
 
     @Override
     public Struct record(Schema schema) {
-        return new Struct(schema)
-                .put(CELL_VALUE_KEY, value)
+        Struct cellStruct = new Struct(schema)
                 .put(CELL_DELETION_TS_KEY, deletionTs)
-                .put(CELL_SET_KEY, true);
+                .put(CELL_SET_KEY, true)
+                .put(CELL_VALUE_KEY, value);
+        return cellStruct;
     }
 
     static Schema cellSchema(ColumnMetadata cm, boolean optional) {
         AbstractType<?> convertedType = CassandraTypeConverter.convert(cm.getType());
-        Schema valueSchema = CassandraTypeDeserializer.getSchemaBuilder(convertedType).optional().build();
+        Schema valueSchema = CassandraTypeDeserializer.getSchemaBuilder(convertedType).build();
         if (valueSchema != null) {
             SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(cm.getName())
                     .field(CELL_VALUE_KEY, valueSchema)

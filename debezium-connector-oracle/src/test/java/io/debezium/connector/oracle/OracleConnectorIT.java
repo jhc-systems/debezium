@@ -5,8 +5,12 @@
  */
 package io.debezium.connector.oracle;
 
+import static io.debezium.connector.oracle.util.TestHelper.TYPE_LENGTH_PARAMETER_KEY;
+import static io.debezium.connector.oracle.util.TestHelper.TYPE_NAME_PARAMETER_KEY;
+import static io.debezium.connector.oracle.util.TestHelper.TYPE_SCALE_PARAMETER_KEY;
 import static junit.framework.TestCase.assertEquals;
 import static org.fest.assertions.Assertions.assertThat;
+import static org.fest.assertions.MapAssert.entry;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -16,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.AfterClass;
@@ -26,6 +31,7 @@ import org.junit.Test;
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnectorConfig.SnapshotMode;
 import io.debezium.connector.oracle.util.TestHelper;
+import io.debezium.data.Envelope;
 import io.debezium.data.VerifyRecord;
 import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
@@ -50,6 +56,9 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection = TestHelper.testConnection();
 
         TestHelper.dropTable(connection, "debezium.customer");
+        TestHelper.dropTable(connection, "debezium.masked_hashed_column_table");
+        TestHelper.dropTable(connection, "debezium.truncated_column_table");
+        TestHelper.dropTable(connection, "debezium.dt_table");
 
         String ddl = "create table debezium.customer (" +
                 "  id numeric(9,0) not null, " +
@@ -62,6 +71,43 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute(ddl);
         connection.execute("GRANT SELECT ON debezium.customer to  " + TestHelper.CONNECTOR_USER);
         connection.execute("ALTER TABLE debezium.customer ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+
+        String ddl2 = "create table debezium.masked_hashed_column_table (" +
+                "  id numeric(9,0) not null, " +
+                "  name varchar2(255), " +
+                "  name2 varchar2(255), " +
+                "  name3 varchar2(20)," +
+                "  primary key (id)" +
+                ")";
+
+        connection.execute(ddl2);
+        connection.execute("GRANT SELECT ON debezium.masked_hashed_column_table to  " + TestHelper.CONNECTOR_USER);
+        connection.execute("ALTER TABLE debezium.masked_hashed_column_table ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+
+        String ddl3 = "create table debezium.truncated_column_table (" +
+                "  id numeric(9,0) not null, " +
+                "  name varchar2(20), " +
+                "  primary key (id)" +
+                ")";
+
+        connection.execute(ddl3);
+        connection.execute("GRANT SELECT ON debezium.truncated_column_table to  " + TestHelper.CONNECTOR_USER);
+        connection.execute("ALTER TABLE debezium.truncated_column_table ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+
+        String ddl4 = "create table dt_table (" +
+                "  id numeric(9,0) not null, " +
+                "  c1 int, " +
+                "  c2 int, " +
+                "  c3a numeric(5,2), " +
+                "  c3b varchar(128), " +
+                "  f1 float(10), " +
+                "  f2 decimal(8,4), " +
+                "  primary key (id)" +
+                ")";
+
+        connection.execute(ddl4);
+        connection.execute("GRANT SELECT ON debezium.dt_table to  " + TestHelper.CONNECTOR_USER);
+        connection.execute("ALTER TABLE debezium.dt_table ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
     }
 
     @AfterClass
@@ -74,15 +120,70 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @Before
     public void before() throws SQLException {
         connection.execute("delete from debezium.customer");
+        connection.execute("delete from debezium.masked_hashed_column_table");
+        connection.execute("delete from debezium.truncated_column_table");
+        connection.execute("delete from debezium.dt_table");
         setConsumeTimeout(TestHelper.defaultMessageConsumerPollTimeout(), TimeUnit.SECONDS);
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
     }
 
     @Test
+    @FixFor("DBZ-2452")
+    public void shouldSnapshotAndStreamWithHyphenedTableName() throws Exception {
+        TestHelper.dropTable(connection, "debezium.\"my-table\"");
+
+        String ddl = "create table \"my-table\" (" +
+                " id numeric(9,0) not null, " +
+                " c1 int, " +
+                " c2 varchar(128), " +
+                " primary key (id))";
+
+        connection.execute(ddl);
+        connection.execute("GRANT SELECT ON debezium.\"my-table\" to " + TestHelper.CONNECTOR_USER);
+        connection.execute("ALTER TABLE debezium.\"my-table\" ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS");
+        connection.execute("INSERT INTO debezium.\"my-table\" VALUES (1, 25, 'Test')");
+        connection.execute("COMMIT");
+
+        Configuration config = TestHelper.defaultConfig()
+                .with(RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST, "DEBEZIUM\\.MY-TABLE")
+                .build();
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        waitForStreamingRunning(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+        connection.execute("INSERT INTO debezium.\"my-table\" VALUES (2, 50, 'Test2')");
+        connection.execute("COMMIT");
+
+        SourceRecords records = consumeRecordsByTopic(2);
+        List<SourceRecord> hyphenatedTableRecords = records.recordsForTopic("server1.DEBEZIUM.my-table");
+        assertThat(hyphenatedTableRecords).hasSize(2);
+
+        // read
+        SourceRecord record1 = hyphenatedTableRecords.get(0);
+        VerifyRecord.isValidRead(record1, "ID", 1);
+        Struct after1 = (Struct) ((Struct) record1.value()).get(Envelope.FieldName.AFTER);
+        assertThat(after1.get("ID")).isEqualTo(1);
+        assertThat(after1.get("C1")).isEqualTo(BigDecimal.valueOf(25L));
+        assertThat(after1.get("C2")).isEqualTo("Test");
+        assertThat(record1.sourceOffset().get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(record1.sourceOffset().get(SNAPSHOT_COMPLETED_KEY)).isEqualTo(true);
+
+        // insert
+        SourceRecord record2 = hyphenatedTableRecords.get(1);
+        VerifyRecord.isValidInsert(record2, "ID", 2);
+        Struct after2 = (Struct) ((Struct) record2.value()).get(Envelope.FieldName.AFTER);
+        assertThat(after2.get("ID")).isEqualTo(2);
+        assertThat(after2.get("C1")).isEqualTo(BigDecimal.valueOf(50L));
+        assertThat(after2.get("C2")).isEqualTo("Test2");
+    }
+
+    @Test
     public void shouldTakeSnapshot() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .build();
 
         int expectedRecordCount = 0;
@@ -131,7 +232,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @Test
     public void shouldContinueWithStreamingAfterSnapshot() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .build();
 
         int expectedRecordCount = 0;
@@ -202,7 +303,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @FixFor("DBZ-1223")
     public void shouldStreamTransaction() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .build();
 
         // Testing.Print.enable();
@@ -293,7 +394,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @Test
     public void shouldStreamAfterRestart() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .build();
 
         // Testing.Print.enable();
@@ -333,7 +434,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @Test
     public void shouldStreamAfterRestartAfterSnapshot() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .build();
 
         // Testing.Print.enable();
@@ -369,7 +470,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @Test
     public void shouldReadChangeStreamForExistingTable() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
                 .build();
 
@@ -459,7 +560,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     @FixFor("DBZ-835")
     public void deleteWithoutTombstone() throws Exception {
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER")
                 .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
                 .with(OracleConnectorConfig.TOMBSTONES_ON_DELETE, false)
                 .build();
@@ -503,7 +604,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         TestHelper.dropTable(connection, "debezium.customer2");
 
         Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER2")
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.CUSTOMER2")
                 .build();
 
         start(OracleConnector.class, config);
@@ -548,7 +649,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         // received from Postgres
         Configuration config = TestHelper.defaultConfig()
                 .with(Heartbeat.HEARTBEAT_INTERVAL, "1")
-                .with(OracleConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.DBZ800B")
+                .with(OracleConnectorConfig.TABLE_WHITELIST, "DEBEZIUM\\.DBZ800B")
                 .build();
 
         start(OracleConnector.class, config);
@@ -571,6 +672,177 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         // and then a change record for s1.b and a heartbeat
         verifyHeartbeatRecord(records.get(1));
         VerifyRecord.isValidInsert(records.get(2), "ID", 2);
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldConsumeEventsWithMaskedAndTruncatedColumnsWithDatabaseName() throws Exception {
+        shouldConsumeEventsWithMaskedAndTruncatedColumns(true);
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldConsumeEventsWithMaskedAndTruncatedColumnsWithoutDatabaseName() throws Exception {
+        shouldConsumeEventsWithMaskedAndTruncatedColumns(false);
+    }
+
+    public void shouldConsumeEventsWithMaskedAndTruncatedColumns(boolean useDatabaseName) throws Exception {
+        final Configuration config;
+        if (useDatabaseName) {
+            config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                    .with("column.mask.with.12.chars", "ORCLPDB1.DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME")
+                    .with("column.mask.hash.SHA-256.with.salt.CzQMA0cB5K",
+                            "ORCLPDB1.DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME2,ORCLPDB1.DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME3")
+                    .with("column.truncate.to.4.chars", "ORCLPDB1.DEBEZIUM.TRUNCATED_COLUMN_TABLE.NAME")
+                    .build();
+        }
+        else {
+            config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                    .with("column.mask.with.12.chars", "DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME")
+                    .with("column.mask.hash.SHA-256.with.salt.CzQMA0cB5K", "DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME2,DEBEZIUM.MASKED_HASHED_COLUMN_TABLE.NAME3")
+                    .with("column.truncate.to.4.chars", "DEBEZIUM.TRUNCATED_COLUMN_TABLE.NAME")
+                    .build();
+        }
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        waitForSnapshotToBeCompleted(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+        connection.execute("INSERT INTO debezium.masked_hashed_column_table (id, name, name2, name3) VALUES (10, 'some_name', 'test', 'test')");
+        connection.execute("INSERT INTO debezium.truncated_column_table VALUES(11, 'some_name')");
+        connection.execute("COMMIT");
+
+        final SourceRecords records = consumeRecordsByTopic(2);
+        final List<SourceRecord> tableA = records.recordsForTopic("server1.DEBEZIUM.MASKED_HASHED_COLUMN_TABLE");
+        final List<SourceRecord> tableB = records.recordsForTopic("server1.DEBEZIUM.TRUNCATED_COLUMN_TABLE");
+
+        assertThat(tableA).hasSize(1);
+        SourceRecord record = tableA.get(0);
+        VerifyRecord.isValidInsert(record, "ID", 10);
+
+        Struct value = (Struct) record.value();
+        if (value.getStruct("after") != null) {
+            Struct after = value.getStruct("after");
+            assertThat(after.getString("NAME")).isEqualTo("************");
+            assertThat(after.getString("NAME2")).isEqualTo("8e68c68edbbac316dfe2f6ada6b0d2d3e2002b487a985d4b7c7c82dd83b0f4d7");
+            assertThat(after.getString("NAME3")).isEqualTo("8e68c68edbbac316dfe2");
+        }
+
+        assertThat(tableB).hasSize(1);
+        record = tableB.get(0);
+        VerifyRecord.isValidInsert(record, "ID", 11);
+
+        value = (Struct) record.value();
+        if (value.getStruct("after") != null) {
+            assertThat(value.getStruct("after").getString("NAME")).isEqualTo("some");
+        }
+
+        stopConnector();
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldRewriteIdentityKeyWithDatabaseName() throws Exception {
+        shouldRewriteIdentityKey(true);
+    }
+
+    @Test
+    @FixFor("DBZ-775")
+    public void shouldRewriteIdentityKeyWithoutDatabaseName() throws Exception {
+        shouldRewriteIdentityKey(false);
+    }
+
+    private void shouldRewriteIdentityKey(boolean useDatabaseName) throws Exception {
+        final Configuration config;
+        if (useDatabaseName) {
+            config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                    .with(OracleConnectorConfig.MSG_KEY_COLUMNS, "(.*).debezium.customer:id,name")
+                    .build();
+        }
+        else {
+            config = TestHelper.defaultConfig()
+                    .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                    .with(OracleConnectorConfig.MSG_KEY_COLUMNS, "debezium.customer:id,name")
+                    .build();
+        }
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        waitForSnapshotToBeCompleted(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+        connection.execute("INSERT INTO debezium.customer VALUES (3, 'Nest', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
+        connection.execute("COMMIT");
+
+        SourceRecords records = consumeRecordsByTopic(1);
+        List<SourceRecord> recordsForTopic = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
+        assertThat(recordsForTopic.get(0).key()).isNotNull();
+        Struct key = (Struct) recordsForTopic.get(0).key();
+        assertThat(key.get("ID")).isNotNull();
+        assertThat(key.get("NAME")).isNotNull();
+
+        stopConnector();
+    }
+
+    @Test
+    @FixFor({ "DBZ-1916", "DBZ-1830" })
+    public void shouldPropagateSourceTypeByDatatype() throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+                .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.SCHEMA_ONLY)
+                .with("datatype.propagate.source.type", ".+\\.NUMBER,.+\\.VARCHAR2,.+\\.FLOAT")
+                .build();
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        waitForSnapshotToBeCompleted(TestHelper.CONNECTOR_NAME, TestHelper.SERVER_NAME);
+
+        connection.execute("INSERT INTO debezium.dt_table (id,c1,c2,c3a,c3b,f1,f2) values (1,123,456,789.01,'test',1.228,234.56)");
+        connection.execute("COMMIT");
+
+        final SourceRecords records = consumeRecordsByTopic(1);
+
+        List<SourceRecord> recordsForTopic = records.recordsForTopic("server1.DEBEZIUM.DT_TABLE");
+        assertThat(recordsForTopic).hasSize(1);
+
+        final Field before = recordsForTopic.get(0).valueSchema().field("before");
+
+        assertThat(before.schema().field("ID").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "NUMBER"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "9"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "0"));
+
+        assertThat(before.schema().field("C1").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "NUMBER"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "38"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "0"));
+
+        assertThat(before.schema().field("C2").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "NUMBER"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "38"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "0"));
+
+        assertThat(before.schema().field("C3A").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "NUMBER"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "5"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "2"));
+
+        assertThat(before.schema().field("C3B").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "VARCHAR2"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "128"));
+
+        assertThat(before.schema().field("F2").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "NUMBER"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "8"),
+                entry(TYPE_SCALE_PARAMETER_KEY, "4"));
+
+        assertThat(before.schema().field("F1").schema().parameters()).includes(
+                entry(TYPE_NAME_PARAMETER_KEY, "FLOAT"),
+                entry(TYPE_LENGTH_PARAMETER_KEY, "10"));
     }
 
     private void verifyHeartbeatRecord(SourceRecord heartbeat) {

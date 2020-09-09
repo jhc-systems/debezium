@@ -26,7 +26,9 @@ import org.apache.cassandra.db.Mutation;
 import org.apache.cassandra.db.commitlog.CommitLogDescriptor;
 import org.apache.cassandra.db.commitlog.CommitLogReadHandler;
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.CollectionType;
 import org.apache.cassandra.db.partitions.PartitionUpdate;
+import org.apache.cassandra.db.rows.ComplexColumnData;
 import org.apache.cassandra.db.rows.Row;
 import org.apache.cassandra.db.rows.Unfiltered;
 import org.apache.cassandra.db.rows.UnfilteredRowIterator;
@@ -419,11 +421,20 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
     private void populateRegularColumns(RowData after, Row row, RowType rowType, SchemaHolder.KeyValueSchema schema) {
         if (rowType == INSERT || rowType == UPDATE) {
             for (ColumnDefinition cd : row.columns()) {
-                org.apache.cassandra.db.rows.Cell cell = row.getCell(cd);
-                String name = cd.name.toString();
                 try {
-                    Object value = cell.isTombstone() ? null : CassandraTypeDeserializer.deserialize(cd.type, cell.value());
-                    Object deletionTs = cell.isExpiring() ? TimeUnit.MICROSECONDS.convert(cell.localDeletionTime(), TimeUnit.SECONDS) : null;
+                    Object value;
+                    Object deletionTs = null;
+                    AbstractType abstractType = cd.type;
+                    if (abstractType.isCollection() && abstractType.isMultiCell()) {
+                        ComplexColumnData ccd = row.getComplexColumnData(cd);
+                        value = CassandraTypeDeserializer.deserialize((CollectionType) abstractType, ccd);
+                    }
+                    else {
+                        org.apache.cassandra.db.rows.Cell cell = row.getCell(cd);
+                        value = cell.isTombstone() ? null : CassandraTypeDeserializer.deserialize(abstractType, cell.value());
+                        deletionTs = cell.isExpiring() ? TimeUnit.MICROSECONDS.convert(cell.localDeletionTime(), TimeUnit.SECONDS) : null;
+                    }
+                    String name = cd.name.toString();
                     CellData cellData = new CellData(name, value, deletionTs, CellData.ColumnType.REGULAR);
                     after.addCell(cellData);
                 }
