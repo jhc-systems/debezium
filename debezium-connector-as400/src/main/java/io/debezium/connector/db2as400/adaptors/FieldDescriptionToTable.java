@@ -37,6 +37,7 @@ import io.debezium.relational.TableId;
 
 public class FieldDescriptionToTable {
     private static final Logger log = LoggerFactory.getLogger(FieldDescriptionToTable.class);
+
     public static Table toTable(TableId tableId, DynamicRecordFormat format) {
         ArrayList<Column> columns = new ArrayList<>();
         FieldDescription descriptions[] = format.getFieldDescriptions();
@@ -66,7 +67,7 @@ public class FieldDescriptionToTable {
                     ce.length(20).scale(0);
                     break;
                 case TYPE_BYTE_ARRAY:
-                	log.error("unsupported type TYPE_BYTE_ARRAY");
+                    log.error("unsupported type TYPE_BYTE_ARRAY");
                     throw new IllegalArgumentException("unsupported type TYPE_BYTE_ARRAY");
                 case TYPE_FLOAT4:
                     ce.jdbcType(Types.FLOAT)
@@ -80,11 +81,11 @@ public class FieldDescriptionToTable {
                     break;
                 case TYPE_PACKED:// packed decimal
                     ce.jdbcType(Types.DOUBLE)
-                    .type("DOUBLE")
-                    .length(126);
+                            .type("DOUBLE")
+                            .length(126);
                     break;
                 case TYPE_STRUCTURE:
-                	log.error("unsupported type TYPE_STRUCTURE");
+                    log.error("unsupported type TYPE_STRUCTURE");
                     throw new IllegalArgumentException("unsupported type " + description.getDataType());
                 case TYPE_TEXT:
                     ce.jdbcType(Types.VARCHAR)
@@ -103,13 +104,13 @@ public class FieldDescriptionToTable {
                     break;
                 case TYPE_ZONED:
                     ce.jdbcType(Types.DOUBLE)
-                    .type("DOUBLE")
-                    .length(126);
+                            .type("DOUBLE")
+                            .length(126);
                     break;
                 case TYPE_DECFLOAT:
                     ce.jdbcType(Types.DOUBLE)
-                    .type("DOUBLE")
-                    .length(126);
+                            .type("DOUBLE")
+                            .length(126);
                     break;
                 case TYPE_BIN1:
                     ce.jdbcType(Types.SMALLINT);
@@ -149,19 +150,19 @@ public class FieldDescriptionToTable {
                 .create();
         return table;
     }
-    
+
     private static String[] sanitise(String[] names) {
-    	String[] snames = new String[names.length];
-    	for (int i=0; i < names.length; i ++) {
-    		snames[i] = sanitise(names[i]);
-    	}
-    	return snames;
+        String[] snames = new String[names.length];
+        for (int i = 0; i < names.length; i++) {
+            snames[i] = sanitise(names[i]);
+        }
+        return snames;
     }
-    
+
     private static String sanitise(String name) {
-    	return name.replaceAll("@", "_a_")
-    			.replaceAll("$", "_d_")
-    			.replaceAll("#", "_h_")
-    			.replaceAll(" ", "_s_");
+        return name.replaceAll("@", "_a_")
+                .replaceAll("\\$", "_d_")
+                .replaceAll("#", "_h_")
+                .replaceAll(" ", "_s_");
     }
 }

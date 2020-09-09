@@ -30,18 +30,18 @@ public class As400RpcConnection implements AutoCloseable {
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
         try {
-        	String receiver = "";
+            String receiver = "";
             RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
             ServiceProgramCall spc = new ServiceProgramCall(as400);
             rnj.addRetrieveCriteria(RetrieveKey.ENTTYP, "*ALL");
             rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, "*CURCHAIN");
             JournalPosition position = offsetCtx.getPosition();
             log.info("fetch from position: {}", position.toString());
-    		if (position.getJournal().length>0) {
-    			rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, position.getJournal());
-    			receiver = String.format(" for receiver %s lib %s ", position.getJournal());
-    		}
-    		Long offset = position.getOffset();
+            if (position.getJournal().length > 0) {
+                rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, position.getJournal());
+                receiver = String.format(" for receiver %s lib %s ", position.getJournal());
+            }
+            Long offset = position.getOffset();
             if (offset == 0) {
                 rnj.addRetrieveCriteria(RetrieveKey.FROMENT, "*FIRST");
             }
@@ -59,13 +59,13 @@ public class As400RpcConnection implements AutoCloseable {
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
                     try {
-                    	Long currentOffset = Long.valueOf(r.getSequenceNumber());
+                        Long currentOffset = Long.valueOf(r.getSequenceNumber());
                         String obj = r.getObject();
                         String file = obj.substring(0, 10).trim();
                         String lib = obj.substring(10, 20).trim();
                         String member = obj.substring(20, 30).trim();
                         TableId tableId = new TableId("", lib, file);
-                        offsetCtx.setSequence(currentOffset+1);
+                        offsetCtx.setSequence(currentOffset + 1);
                         consumer.accept(currentOffset, r, tableId, member);
                     }
                     catch (Exception e) {

@@ -1,8 +1,6 @@
 package io.debezium.connector.db2as400;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.connect.source.SourceRecord;
@@ -60,11 +58,10 @@ public class As400ConnectorTask extends BaseSourceTask {
 
         ErrorHandler errorHandler = new ErrorHandler(As400RpcConnector.class, connectorConfig.getLogicalName(), queue);
 
-        
         // TODO find current offset
         OffsetContext previousOffset = getPreviousOffset(new As400OffsetContext.Loader(connectorConfig));
         if (previousOffset == null) {
-        	previousOffset = new As400OffsetContext(connectorConfig);
+            previousOffset = new As400OffsetContext(connectorConfig);
         }
 
         As400RpcConnection rpcConnection = new As400RpcConnection(connectorConfig);

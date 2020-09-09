@@ -23,14 +23,14 @@ public class As400OffsetContext implements OffsetContext {
     public static final String EVENT_SEQUENCE = "offset.event_sequence";
     public static final String JOURNAL_LIB = "offset.journal_lib";
     public static final String JOURNAL_RECEIVER = "offset.journal_receiver";
-    
+
     public static final Field EVENT_SEQUENCE_FIELD = Field.create(EVENT_SEQUENCE);
     public static final Field JOURNAL_LIB_FIELD = Field.create(JOURNAL_LIB);
     public static final Field JOURNAL_RECEIVER_FIELD = Field.create(JOURNAL_RECEIVER);
-    
+
     private final Map<String, String> partition;
     private TransactionContext transactionContext;
-	private static String[] empty = new String[] {};
+    private static String[] empty = new String[]{};
 
     As400ConnectorConfig connectorConfig;
     SourceInfo sourceInfo;
@@ -43,7 +43,7 @@ public class As400OffsetContext implements OffsetContext {
         this.connectorConfig = connectorConfig;
         sourceInfo = new SourceInfo(connectorConfig);
     }
-    
+
     public As400OffsetContext(As400ConnectorConfig connectorConfig, JournalPosition position) {
         super();
         partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
@@ -57,12 +57,12 @@ public class As400OffsetContext implements OffsetContext {
             log.error("loop currently {} set to {}", position.getOffset(), sequence, new Exception("please report this should never go backwards"));
         }
         else {
-        	position.setOffset(sequence);
+            position.setOffset(sequence);
         }
     }
-    
+
     public JournalPosition getPosition() {
-    	return position;
+        return position;
     }
 
     public void setTransaction(TransactionContext transactionContext) {
@@ -89,10 +89,9 @@ public class As400OffsetContext implements OffsetContext {
             log.debug("new offset {}", position);
             // TODO persist progress
             return Collect.hashMapOf(
-            		As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
-            		As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
-            		As400OffsetContext.JOURNAL_LIB, position.getJournalLib()
-                    );
+                    As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
+                    As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
+                    As400OffsetContext.JOURNAL_LIB, position.getJournalLib());
         }
     }
 
@@ -150,12 +149,11 @@ public class As400OffsetContext implements OffsetContext {
     public TransactionContext getTransactionContext() {
         return transactionContext;
     }
-    
-	public void setJournalReciever(String journalReciever, String journalLib) {
-		position.setJournalReciever(journalReciever, journalLib);
-	}
 
-	
+    public void setJournalReciever(String journalReciever, String journalLib) {
+        position.setJournalReciever(journalReciever, journalLib);
+    }
+
     public static class Loader implements OffsetContext.Loader {
 
         private final As400ConnectorConfig connectorConfig;
@@ -171,10 +169,10 @@ public class As400OffsetContext implements OffsetContext {
 
         @Override
         public OffsetContext load(Map<String, ?> map) {
-            Long offset = Long.valueOf((String)map.get(As400OffsetContext.EVENT_SEQUENCE));
-            String receiver = (String)map.get(As400OffsetContext.JOURNAL_RECEIVER);
-            String lib = (String)map.get(As400OffsetContext.JOURNAL_LIB);
-            
+            Long offset = Long.valueOf((String) map.get(As400OffsetContext.EVENT_SEQUENCE));
+            String receiver = (String) map.get(As400OffsetContext.JOURNAL_RECEIVER);
+            String lib = (String) map.get(As400OffsetContext.JOURNAL_LIB);
+
             return new As400OffsetContext(connectorConfig, new JournalPosition(offset, receiver, lib));
         }
     }

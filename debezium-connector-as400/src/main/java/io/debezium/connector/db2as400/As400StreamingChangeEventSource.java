@@ -43,7 +43,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     private static final Logger LOGGER = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
     private HashMap<String, Object[]> beforeMap = new HashMap<>();
     private static Set<String> alwaysProcess = Stream.of("J", "C")
-    		  .collect(Collectors.toCollection(HashSet::new));
+            .collect(Collectors.toCollection(HashSet::new));
 
     /**
      * Connection used for reading CDC tables.
@@ -86,8 +86,9 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         Object[] dataBefore = beforeMap.remove(key);
         if (dataBefore == null) {
             log.info("before image found for {}", key);
-        } else {
-        	log.warn("already had before image for {}", key);
+        }
+        else {
+            log.warn("already had before image for {}", key);
         }
         return dataBefore;
     }
@@ -95,14 +96,14 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     @Override
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
-//        Integer offset = offsetContext.getSequence();
+        // Integer offset = offsetContext.getSequence();
         while (context.isRunning()) {
             try {
                 dataConnection.getJournalEntries(offsetContext, (nextOffset, r, tableId, member) -> {
                     boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
-                    
-                    if (!alwaysProcess.contains(r.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages 
-//                        log.debug("table {} excluded skipping", tableId);
+
+                    if (!alwaysProcess.contains(r.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages
+                        // log.debug("table {} excluded skipping", tableId);
                         return;
                     }
 
@@ -198,15 +199,15 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                         }
                             break;
                         case "J.NR": {
-							RecordFormat jrf = JornalRecordFormats.journalReciever();
-							FieldDescription[] fields = jrf.getFieldDescriptions();							
-							Object[] os = r.getEntrySpecificData(jrf);
-							
-							if (os.length > 1) {
-								offsetContext.setJournalReciever(os[0].toString(), os[1].toString());
-							}
+                            RecordFormat jrf = JornalRecordFormats.journalReciever();
+                            FieldDescription[] fields = jrf.getFieldDescriptions();
+                            Object[] os = r.getEntrySpecificData(jrf);
+
+                            if (os.length > 1) {
+                                offsetContext.setJournalReciever(os[0].toString(), os[1].toString());
+                            }
                         }
-                        break;
+                            break;
                     }
                 }, () -> {
                     log.debug("sleep");
@@ -214,7 +215,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                 });
             }
             catch (Exception e) {
-            	log.error("failed to process offset {}", offsetContext.getPosition().toString(),  e);
+                log.error("failed to process offset {}", offsetContext.getPosition().toString(), e);
                 errorHandler.setProducerThrowable(e);
             }
         }

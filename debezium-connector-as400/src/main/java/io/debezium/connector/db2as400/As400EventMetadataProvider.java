@@ -1,7 +1,6 @@
 package io.debezium.connector.db2as400;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Struct;
@@ -32,18 +31,18 @@ public class As400EventMetadataProvider implements EventMetadataProvider {
     }
 
     @SuppressWarnings("unchecked")
-	@Override
+    @Override
     public Map<String, String> getEventSourcePosition(DataCollectionId source, OffsetContext offset, Object key,
                                                       Struct value) {
-        Map<String, ?> map = offset.getOffset(); 
-        return (Map<String, String>)map;
+        Map<String, ?> map = offset.getOffset();
+        return (Map<String, String>) map;
     }
 
     @Override
     public String getTransactionId(DataCollectionId source, OffsetContext offset, Object key, Struct value) {
         // TODO Auto-generated method stub
-    	if (offset.getTransactionContext() == null)
-    		return null;
+        if (offset.getTransactionContext() == null)
+            return null;
         return offset.getTransactionContext().getTransactionId();
     }
 

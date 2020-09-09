@@ -81,7 +81,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         Long offset = getConfig().getLong(As400OffsetContext.EVENT_SEQUENCE);
         return new JournalPosition(offset, receiver, lib);
     }
-    
+
     private static class SystemTablesPredicate implements TableFilter {
 
         @Override
@@ -118,9 +118,8 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
         Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME,
                 USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
-        
+
         Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD, As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.JOURNAL_LIB_FIELD);
-        		
 
         // TODO below borrowed form DB2
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
