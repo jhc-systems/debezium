@@ -92,11 +92,11 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
         return null;
     }
 
-    @Override
-    protected Optional<String> getSnapshotSelect(SnapshotContext snapshotContext, TableId tableId) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	@Override
+	protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
     @Override
     protected void complete(SnapshotContext snapshotContext) {
@@ -114,5 +114,6 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
         // TODO Auto-generated method stub
         return null;
     }
+
 
 }
