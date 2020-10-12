@@ -52,7 +52,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
     public As400ConnectorConfig(Configuration config) {
         super(config, config.getString(JdbcConfiguration.HOSTNAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table(), 1);
-        this.columnFilter = Tables.ColumnNameFilterFactory.createBlacklistFilter(config.getString(RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST));
+        this.columnFilter = Tables.ColumnNameFilterFactory.createExcludeListFilter(config.getString(RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST));
     }
 
     public String getHostName() {
@@ -122,9 +122,9 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD, As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.JOURNAL_LIB_FIELD);
 
         // TODO below borrowed form DB2
-        Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
-                RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
-                RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
+        Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
+                RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
+                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
                 Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX,
                 CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
                 CommonConnectorConfig.EVENT_PROCESSING_FAILURE_HANDLING_MODE);
