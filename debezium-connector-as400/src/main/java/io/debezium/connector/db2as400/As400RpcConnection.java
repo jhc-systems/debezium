@@ -1,3 +1,8 @@
+/*
+ * Copyright Debezium Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
 package io.debezium.connector.db2as400;
 
 import org.slf4j.Logger;
@@ -69,10 +74,12 @@ public class As400RpcConnection implements AutoCloseable {
                         consumer.accept(currentOffset, r, tableId, member);
                     }
                     catch (Exception e) {
-                        if (exception == null)
+                        if (exception == null) {
                             exception = new RpcException("Failed to process record", e);
-                        else
+                        }
+                        else {
                             exception.addSuppressed(e); // TODO dump failed record for diagnostics
+                        }
                     }
                 }
             }

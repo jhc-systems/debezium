@@ -1,4 +1,8 @@
-
+/*
+ * Copyright Debezium Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
 package io.debezium.connector.db2as400;
 
 import java.text.ParseException;
@@ -314,7 +318,6 @@ public class RJNE0100 {
             default:
                 throw new IllegalArgumentException(String.format("Method not yet implemented for RetreieveKey '%s'", eKey.toString()));
         }
-        ;
         parameterList[4] = new ProgramParameter(ProgramParameter.PASS_BY_REFERENCE, new AS400Structure(criteria.getStructure()).toBytes(criteria.getObject()));
     }
 

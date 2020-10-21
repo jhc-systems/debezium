@@ -1,3 +1,8 @@
+/*
+ * Copyright Debezium Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
 package io.debezium.connector.db2as400;
 
 import java.util.Optional;
@@ -92,11 +97,11 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
         return null;
     }
 
-	@Override
-	protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
     @Override
     protected void complete(SnapshotContext snapshotContext) {
@@ -114,6 +119,5 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
         // TODO Auto-generated method stub
         return null;
     }
-
 
 }

@@ -1,3 +1,8 @@
+/*
+ * Copyright Debezium Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
 package io.debezium.connector.db2as400;
 
 public class JournalPosition {
@@ -22,8 +27,9 @@ public class JournalPosition {
     }
 
     public long getOffset() {
-        if (null == offset)
+        if (null == offset) {
             return 0;
+        }
         return offset;
     }
 
@@ -50,10 +56,12 @@ public class JournalPosition {
     }
 
     public String[] getJournal() {
-        if (journalReciever != null && journalLib != null)
+        if (journalReciever != null && journalLib != null) {
             return new String[]{ journalReciever, journalLib, journalReciever, journalLib };
-        else
+        }
+        else {
             return empty;
+        }
     }
 
     @Override
@@ -68,31 +76,44 @@ public class JournalPosition {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         JournalPosition other = (JournalPosition) obj;
         if (journalLib == null) {
-            if (other.journalLib != null)
+            if (other.journalLib != null) {
                 return false;
+            }
         }
-        else if (!journalLib.equals(other.journalLib))
+        else if (!journalLib.equals(other.journalLib)) {
             return false;
+        }
         if (journalReciever == null) {
-            if (other.journalReciever != null)
+            if (other.journalReciever != null) {
                 return false;
+            }
         }
-        else if (!journalReciever.equals(other.journalReciever))
-            return false;
+        else {
+            if (!journalReciever.equals(other.journalReciever)) {
+                return false;
+            }
+        }
         if (offset == null) {
-            if (other.offset != null)
+            if (other.offset != null) {
                 return false;
+            }
         }
-        else if (!offset.equals(other.offset))
-            return false;
+        else {
+            if (!offset.equals(other.offset)) {
+                return false;
+            }
+        }
         return true;
     }
 

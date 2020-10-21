@@ -34,7 +34,7 @@ public class SourceInfo extends BaseSourceInfo {
     protected SourceInfo(As400ConnectorConfig connectorConfig) {
         super(connectorConfig);
         // TODO
-        this.databaseName = "db name";// connectorConfig.getDatabaseName();
+        this.databaseName = "db name"; // connectorConfig.getDatabaseName();
     }
 
     public void setSourceTime(Instant instant) {
