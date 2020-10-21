@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ibm.as400.access.FieldDescription;
 import com.ibm.as400.access.RecordFormat;
 
 import io.debezium.connector.db2as400.adaptors.JornalRecordFormats;
@@ -200,7 +199,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             break;
                         case "J.NR": {
                             RecordFormat jrf = JornalRecordFormats.journalReciever();
-                            FieldDescription[] fields = jrf.getFieldDescriptions();
+//                            FieldDescription[] fields = jrf.getFieldDescriptions();
                             Object[] os = r.getEntrySpecificData(jrf);
 
                             if (os.length > 1) {

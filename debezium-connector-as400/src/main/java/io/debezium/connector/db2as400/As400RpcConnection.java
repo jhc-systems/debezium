@@ -35,7 +35,6 @@ public class As400RpcConnection implements AutoCloseable {
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
         try {
-            String receiver = "";
             RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
             ServiceProgramCall spc = new ServiceProgramCall(as400);
             rnj.addRetrieveCriteria(RetrieveKey.ENTTYP, "*ALL");
@@ -44,7 +43,6 @@ public class As400RpcConnection implements AutoCloseable {
             log.info("fetch from position: {}", position.toString());
             if (position.getJournal().length > 0) {
                 rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, position.getJournal());
-                receiver = String.format(" for receiver %s lib %s ", position.getJournal());
             }
             Long offset = position.getOffset();
             if (offset == 0) {

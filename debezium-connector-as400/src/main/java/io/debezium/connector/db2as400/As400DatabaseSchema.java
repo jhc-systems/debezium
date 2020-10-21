@@ -16,14 +16,9 @@ import io.debezium.relational.TableSchemaBuilder;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.SchemaNameAdjuster;
 
-/**
- * Logical representation of DB2 schema.
- *
- * @author Jiri Pechanec
- */
 public class As400DatabaseSchema extends RelationalDatabaseSchema {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(As400DatabaseSchema.class);
+    private static final Logger log = LoggerFactory.getLogger(As400DatabaseSchema.class);
 
     public As400DatabaseSchema(As400ConnectorConfig config,
                                TopicSelector<TableId> topicSelector,

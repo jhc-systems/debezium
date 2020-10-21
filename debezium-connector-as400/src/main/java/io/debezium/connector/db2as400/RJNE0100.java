@@ -770,7 +770,7 @@ public class RJNE0100 {
             structure = new ArrayList<AS400DataType>();
             structure.add(new AS400Bin4());
             data = new ArrayList<Object>();
-            data.add(new Integer(0));
+            data.add(Integer.valueOf(0));
         }
 
         private AS400DataType[] getStructure() {
@@ -906,7 +906,7 @@ public class RJNE0100 {
             }
 
             Object[] temp2 = new Object[2];
-            temp2[0] = new Integer(count);
+            temp2[0] = Integer.valueOf(count);
             temp2[1] = temp;
 
             AS400DataType type[] = new AS400DataType[2];
@@ -952,7 +952,7 @@ public class RJNE0100 {
             }
 
             Object[] temp2 = new Object[2];
-            temp2[0] = new Integer(count);
+            temp2[0] = Integer.valueOf(count);
             temp2[1] = temp;
 
             AS400DataType type[] = new AS400DataType[2];
@@ -975,9 +975,9 @@ public class RJNE0100 {
             AS400Bin4 parm3Type = new AS400Bin4();
             AS400DataType parm4Type = dataType;
 
-            Integer parm1Value = new Integer(parm1Type.getByteLength() + parm2Type.getByteLength() + parm3Type.getByteLength() + parm4Type.getByteLength());
-            Integer parm2Value = new Integer(rKey.getKey());
-            Integer parm3Value = new Integer(parm4Type.getByteLength());
+            Integer parm1Value = Integer.valueOf(parm1Type.getByteLength() + parm2Type.getByteLength() + parm3Type.getByteLength() + parm4Type.getByteLength());
+            Integer parm2Value = Integer.valueOf(rKey.getKey());
+            Integer parm3Value = Integer.valueOf(parm4Type.getByteLength());
             Object parm4Value = value;
 
             structure.add(parm1Type);
