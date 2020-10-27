@@ -34,7 +34,7 @@ public class JournalPosition {
     }
 
     public boolean isOffsetSet() {
-        return (null == offset);
+        return (null != offset);
     }
 
     public String getJournalReciever() {

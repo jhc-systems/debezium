@@ -43,8 +43,8 @@ import com.ibm.as400.access.RecordFormat;
  * @version 1.0 (Nov 23, 2009)
  * Initial creation.
  * 
- * @version 1.1 (Feb 01, 2013)
  * Define RetrieveKey, JournalCode, JournalEntryType as enum. 
+ * @version 1.1 (Feb 01, 2013)
  * Create inner class JrneToRtv to handle "Journal Entries to Retrieve" structure.
  *
  */

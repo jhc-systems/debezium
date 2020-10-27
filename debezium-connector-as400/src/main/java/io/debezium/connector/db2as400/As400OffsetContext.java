@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.config.Field;
+import io.debezium.connector.SnapshotRecord;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.schema.DataCollectionId;
@@ -86,13 +87,14 @@ public class As400OffsetContext implements OffsetContext {
     @Override
     public Map<String, ?> getOffset() {
         if (sourceInfo.isSnapshot()) {
-            log.error("SHAPSHOTS not supported yet");
-            // TODO handle snapshots
-            return null;
+        	log.debug("new snapshot offset {}", position);
+            return Collect.hashMapOf(
+                    As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
+                    As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
+                    As400OffsetContext.JOURNAL_LIB, position.getJournalLib());
         }
         else {
             log.debug("new offset {}", position);
-            // TODO persist progress
             return Collect.hashMapOf(
                     As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
                     As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
@@ -128,8 +130,7 @@ public class As400OffsetContext implements OffsetContext {
 
     @Override
     public void preSnapshotStart() {
-        // TODO Auto-generated method stub
-
+        sourceInfo.setSnapshot(SnapshotRecord.TRUE);
     }
 
     @Override
@@ -140,8 +141,7 @@ public class As400OffsetContext implements OffsetContext {
 
     @Override
     public void postSnapshotCompletion() {
-        // TODO Auto-generated method stub
-
+        sourceInfo.setSnapshot(SnapshotRecord.FALSE);
     }
 
     @Override

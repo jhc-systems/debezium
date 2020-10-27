@@ -19,6 +19,7 @@ import io.debezium.relational.RelationalSnapshotChangeEventSource;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.schema.SchemaChangeEvent;
+import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 import io.debezium.util.Clock;
 
 public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEventSource {
@@ -26,15 +27,17 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     private final As400ConnectorConfig connectorConfig;
     private final As400JdbcConnection jdbcConnection;
+    private As400RpcConnection rpcConnection;
     private final EventDispatcher<TableId> dispatcher;
     private final As400DatabaseSchema schema;
 
-    public As400SnapshotChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext previousOffset, As400JdbcConnection jdbcConnection,
+    public As400SnapshotChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext previousOffset, As400RpcConnection rpcConnection, As400JdbcConnection jdbcConnection,
                                           As400DatabaseSchema schema,
                                           EventDispatcher<TableId> dispatcher, Clock clock, SnapshotProgressListener snapshotProgressListener) {
 
         super(connectorConfig, previousOffset, jdbcConnection, dispatcher, clock, snapshotProgressListener);
         this.connectorConfig = connectorConfig;
+        this.rpcConnection = rpcConnection;
         this.jdbcConnection = jdbcConnection;
         this.dispatcher = dispatcher;
         this.schema = schema;
@@ -42,7 +45,7 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected Set<TableId> getAllTableIds(RelationalSnapshotContext snapshotContext) throws Exception {
-        Set<TableId> tables = jdbcConnection.readTableNames(null, null, null, new String[]{ "TABLE" });
+        Set<TableId> tables = jdbcConnection.readTableNames(null, connectorConfig.getJournalFile(), null, new String[]{ "TABLE" });
         return tables;
     }
 
@@ -55,7 +58,8 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected void determineSnapshotOffset(RelationalSnapshotContext snapshotContext) throws Exception {
-        // TODO Auto-generated method stub
+    	JournalPosition position = rpcConnection.getCurrentPosition();
+    	snapshotContext.offset = new As400OffsetContext(connectorConfig, position);
     }
 
     @Override
@@ -82,7 +86,14 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,
                     false);
+            
         }
+        
+        for (TableId id: snapshotContext.capturedTables) {
+        	Table table = snapshotContext.tables.forTable(id);
+        	schema.addSchema(table);
+        }
+        System.out.println(snapshotContext.tables);
     }
 
     @Override
@@ -93,14 +104,20 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
     @Override
     protected SchemaChangeEvent getCreateTableEvent(RelationalSnapshotContext snapshotContext, Table table)
             throws Exception {
-        // TODO Auto-generated method stub
-        return null;
+        return new SchemaChangeEvent(
+                snapshotContext.offset.getPartition(),
+                snapshotContext.offset.getOffset(),
+                snapshotContext.offset.getSourceInfo(),
+                snapshotContext.catalogName,
+                table.id().schema(),
+                null,
+                table,
+                SchemaChangeEventType.CREATE, true);
     }
 
     @Override
     protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
-        // TODO Auto-generated method stub
-        return null;
+    	return Optional.of(String.format("SELECT * FROM %s.%s", tableId.schema(), tableId.table()));
     }
 
     @Override
@@ -110,14 +127,20 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
-        // TODO Auto-generated method stub
-        return new SnapshottingTask(false, false);
+    	
+        if (previousOffset != null && !previousOffset.isSnapshotRunning()) {
+        	if (previousOffset instanceof As400OffsetContext) {
+        		JournalPosition pos = ((As400OffsetContext)previousOffset).getPosition();
+	        	if (pos.isOffsetSet())
+	        		return new SnapshottingTask(false, false);
+        	}
+        }
+        return new SnapshottingTask(true, connectorConfig.getSnapshotMode().includeData());
     }
 
     @Override
     protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext) throws Exception {
-        // TODO Auto-generated method stub
-        return null;
+    	return new RelationalSnapshotContext(jdbcConnection.getRealDatabaseName());
     }
 
 }

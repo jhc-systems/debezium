@@ -13,6 +13,7 @@ import com.ibm.as400.access.ServiceProgramCall;
 
 import io.debezium.connector.db2as400.RJNE0100.Receiver;
 import io.debezium.connector.db2as400.RJNE0100.RetrieveKey;
+import io.debezium.connector.db2as400.command.JournalInfoRetrieval;
 import io.debezium.relational.TableId;
 
 public class As400RpcConnection implements AutoCloseable {
@@ -30,6 +31,14 @@ public class As400RpcConnection implements AutoCloseable {
     @Override
     public void close() throws Exception {
         this.as400.disconnectAllServices();
+    }
+    
+    public JournalPosition getCurrentPosition() throws RpcException {
+    	try {
+    		return JournalInfoRetrieval.getCurrentPosition(as400, config.getJournalFile(), config.getJournalLibrary());
+    	} catch (Exception e) {
+            throw new RpcException("Failed to find offset", e);
+        }
     }
 
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
@@ -80,8 +89,14 @@ public class As400RpcConnection implements AutoCloseable {
                         }
                     }
                 }
-            }
-            else {
+            } else {
+        		JournalPosition positionCheck = JournalInfoRetrieval.getCurrentPosition(as400, config.getJournalLibrary(), config.getJournalFile());
+        		positionCheck.setOffset(positionCheck.getOffset());
+                JournalPosition lastOffset = offsetCtx.getPosition();
+                if (!positionCheck.getJournal().equals(lastOffset.getJournal())) {
+                	log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset", positionCheck.getJournal(), lastOffset.getJournal());
+                	offsetCtx.setJournalReciever(null, null);
+                }
                 nodataConsumer.accept();
             }
         }

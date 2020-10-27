@@ -38,7 +38,7 @@ public class As400ChangeEventSourceFactory implements ChangeEventSourceFactory {
 
     @Override
     public SnapshotChangeEventSource getSnapshotChangeEventSource(OffsetContext offsetContext, SnapshotProgressListener snapshotProgressListener) {
-        return new As400SnapshotChangeEventSource(configuration, (As400OffsetContext) offsetContext, jdbcConnection, schema, dispatcher, clock, snapshotProgressListener);
+        return new As400SnapshotChangeEventSource(configuration, (As400OffsetContext) offsetContext, rpcConnection, jdbcConnection, schema, dispatcher, clock, snapshotProgressListener);
     }
 
     @Override
