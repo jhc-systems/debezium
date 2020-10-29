@@ -48,6 +48,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
      * Connection used for reading CDC tables.
      */
     private final As400RpcConnection dataConnection;
+    private final As400JdbcConnection jdbcConnection;    
 
     /**
      * A separate connection for retrieving timestamps; without it, adaptive
@@ -63,10 +64,11 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     private final Map<String, TransactionContext> txMap = new HashMap<>();
 
     public As400StreamingChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext offsetContext,
-                                           As400RpcConnection dataConnection, EventDispatcher<TableId> dispatcher,
+                                           As400RpcConnection dataConnection, As400JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher,
                                            ErrorHandler errorHandler, Clock clock, As400DatabaseSchema schema) {
         this.connectorConfig = connectorConfig;
         this.dataConnection = dataConnection;
+        this.jdbcConnection = jdbcConnection;
         this.dispatcher = dispatcher;
         this.errorHandler = errorHandler;
         this.clock = clock;
@@ -132,6 +134,16 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                             }
                         }
                             break;
+// TODO get latest schema / decode entry 
+//                          Tables tables = new Tables();
+//                          jdbcConnection.readSchema(
+//                          		tables,
+//                                  null,
+//                                  schema,
+//                                  connectorConfig.getTableFilters().dataCollectionFilter(),
+//                                  null,
+//                                  false);
+
                         case "R.UB": {
                             // before image
                             tableId.schema();

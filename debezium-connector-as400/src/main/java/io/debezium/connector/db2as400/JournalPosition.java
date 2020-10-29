@@ -8,22 +8,22 @@ package io.debezium.connector.db2as400;
 public class JournalPosition {
     private Long offset;
     private String journalReciever;
-    private String journalLib;
+    private String schema;
     private static String[] empty = new String[]{};
 
     public JournalPosition(JournalPosition position) {
         this.offset = position.offset;
         this.journalReciever = position.journalReciever;
-        this.journalLib = position.journalLib;
+        this.schema = position.schema;
     }
 
     public JournalPosition() {
     }
 
-    public JournalPosition(Long offset, String journalReciever, String journalLib) {
+    public JournalPosition(Long offset, String journalReciever, String schema) {
         this.offset = offset;
-        this.journalReciever = journalReciever;
-        this.journalLib = journalLib;
+        this.journalReciever = (journalReciever == null) ? null : journalReciever.trim();
+        this.schema = (schema == null) ? null : schema.trim();
     }
 
     public long getOffset() {
@@ -41,23 +41,23 @@ public class JournalPosition {
         return journalReciever;
     }
 
-    public String getJournalLib() {
-        return journalLib;
+    public String getSchema() {
+        return schema;
     }
 
     public void setOffset(Long offset) {
         this.offset = offset;
     }
 
-    public void setJournalReciever(String journalReciever, String journalLib) {
-        this.journalReciever = journalReciever.trim();
-        this.journalLib = journalLib.trim();
+    public void setJournalReciever(String journalReciever, String schema) {
+        this.journalReciever = (journalReciever == null) ? null : journalReciever.trim();
+        this.schema = (schema == null) ? null : schema.trim();
         this.offset = 1L;
     }
 
     public String[] getJournal() {
-        if (journalReciever != null && journalLib != null) {
-            return new String[]{ journalReciever, journalLib, journalReciever, journalLib };
+        if (journalReciever != null && schema != null) {
+            return new String[]{ journalReciever, schema, journalReciever, schema };
         }
         else {
             return empty;
@@ -68,7 +68,7 @@ public class JournalPosition {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((journalLib == null) ? 0 : journalLib.hashCode());
+        result = prime * result + ((schema == null) ? 0 : schema.hashCode());
         result = prime * result + ((journalReciever == null) ? 0 : journalReciever.hashCode());
         result = prime * result + ((offset == null) ? 0 : offset.hashCode());
         return result;
@@ -86,12 +86,12 @@ public class JournalPosition {
             return false;
         }
         JournalPosition other = (JournalPosition) obj;
-        if (journalLib == null) {
-            if (other.journalLib != null) {
+        if (schema == null) {
+            if (other.schema != null) {
                 return false;
             }
         }
-        else if (!journalLib.equals(other.journalLib)) {
+        else if (!schema.equals(other.schema)) {
             return false;
         }
         if (journalReciever == null) {
@@ -119,7 +119,7 @@ public class JournalPosition {
 
     @Override
     public String toString() {
-        return "As400JournalPosition [offset=" + offset + ", reciever=" + journalReciever + ", lib=" + journalLib + "]";
+        return "As400JournalPosition [offset=" + offset + ", reciever=" + journalReciever + ", schema=" + schema + "]";
     }
 
 }

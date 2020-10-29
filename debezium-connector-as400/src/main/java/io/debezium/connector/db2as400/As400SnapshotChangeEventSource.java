@@ -45,7 +45,7 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected Set<TableId> getAllTableIds(RelationalSnapshotContext snapshotContext) throws Exception {
-        Set<TableId> tables = jdbcConnection.readTableNames(null, connectorConfig.getJournalFile(), null, new String[]{ "TABLE" });
+        Set<TableId> tables = jdbcConnection.readTableNames(null, connectorConfig.getSchema(), null, new String[]{ "TABLE" });
         return tables;
     }
 

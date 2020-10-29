@@ -18,7 +18,7 @@ public class JournalInfoRetrievalTest {
 		JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, "MSDEVT", "QSQJRN");
 		assertThat(position, is(notNullValue()));
 		assertThat(position.getJournalReciever(), not(emptyOrNullString()));
-		assertThat(position.getJournalLib(), not(emptyOrNullString()));
+		assertThat(position.getSchema(), not(emptyOrNullString()));
 		assertThat(position.getOffset(), is(greaterThanOrEqualTo(0L)));
 	}
 

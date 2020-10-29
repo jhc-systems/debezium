@@ -47,6 +47,7 @@ public class As400ChangeEventSourceFactory implements ChangeEventSourceFactory {
                 configuration,
                 (As400OffsetContext) offsetContext,
                 rpcConnection,
+                jdbcConnection,
                 dispatcher,
                 errorHandler,
                 clock,

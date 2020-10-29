@@ -36,16 +36,16 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema {
         this.config = config;
     }
     
-    public void addSchema(TableId tableId, DynamicRecordFormat format) {
-        Table table = FieldDescriptionToTable.toTable(tableId, format);
-        this.buildAndRegisterSchema(table);
-    }
+//    public void addSchema(TableId tableId, DynamicRecordFormat format) {
+//        Table table = FieldDescriptionToTable.toTable(tableId, format);
+//        this.buildAndRegisterSchema(table);
+//    }
     
     public void addSchema(Table table) {
         this.buildAndRegisterSchema(table);
     }
     
     public String getSchemaName() {
-    	return config.getJournalFile();
+    	return config.getSchema();
     }
 }

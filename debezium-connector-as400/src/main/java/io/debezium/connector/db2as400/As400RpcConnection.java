@@ -14,18 +14,21 @@ import com.ibm.as400.access.ServiceProgramCall;
 import io.debezium.connector.db2as400.RJNE0100.Receiver;
 import io.debezium.connector.db2as400.RJNE0100.RetrieveKey;
 import io.debezium.connector.db2as400.command.JournalInfoRetrieval;
+import io.debezium.connector.db2as400.command.JournalInfoRetrieval.JournalInfo;
 import io.debezium.relational.TableId;
 
 public class As400RpcConnection implements AutoCloseable {
     private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
     private As400ConnectorConfig config;
+    private final String journalLibrary;
     private final AS400 as400;
 
     public As400RpcConnection(As400ConnectorConfig config) {
         super();
         this.config = config;
         this.as400 = new AS400(config.getHostName(), config.getUser(), config.getPassword());
+        journalLibrary = JournalInfoRetrieval.getJournal(as400, config.getSchema());
     }
 
     @Override
@@ -35,7 +38,8 @@ public class As400RpcConnection implements AutoCloseable {
     
     public JournalPosition getCurrentPosition() throws RpcException {
     	try {
-    		return JournalInfoRetrieval.getCurrentPosition(as400, config.getJournalFile(), config.getJournalLibrary());
+    		return JournalInfoRetrieval.getCurrentPosition(as400, config.getSchema(),journalLibrary);
+//    		return new JournalPosition(null, null, null);
     	} catch (Exception e) {
             throw new RpcException("Failed to find offset", e);
         }
@@ -44,7 +48,7 @@ public class As400RpcConnection implements AutoCloseable {
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
         try {
-            RJNE0100 rnj = new RJNE0100(config.getJournalLibrary(), config.getJournalFile());
+            RJNE0100 rnj = new RJNE0100(journalLibrary, config.getSchema());
             ServiceProgramCall spc = new ServiceProgramCall(as400);
             rnj.addRetrieveCriteria(RetrieveKey.ENTTYP, "*ALL");
             rnj.addRetrieveCriteria(RetrieveKey.RCVRNG, "*CURCHAIN");
@@ -90,11 +94,10 @@ public class As400RpcConnection implements AutoCloseable {
                     }
                 }
             } else {
-        		JournalPosition positionCheck = JournalInfoRetrieval.getCurrentPosition(as400, config.getJournalLibrary(), config.getJournalFile());
-        		positionCheck.setOffset(positionCheck.getOffset());
+            	 JournalInfo journalNow = JournalInfoRetrieval.getReceiver(as400, config.getSchema(), journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
-                if (!positionCheck.getJournal().equals(lastOffset.getJournal())) {
-                	log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset", positionCheck.getJournal(), lastOffset.getJournal());
+                if (!journalNow.receiver.equals(lastOffset.getJournalReciever())) {
+                	log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset", journalNow.receiver, lastOffset.getJournal());
                 	offsetCtx.setJournalReciever(null, null);
                 }
                 nodataConsumer.accept();
@@ -110,9 +113,9 @@ public class As400RpcConnection implements AutoCloseable {
             String recordFileName = String.format("/QSYS.LIB/%s.LIB/%s.FILE/%s.MBR", tableId.schema(), tableId.table(), member);
             DynamicRecordFormat recordFormat = DynamicRecordFormat.getRecordFormat(recordFileName, as400);
             // TODO I think really we are meant to register the table to monitor in the snapshot startup
-            if (schema.schemaFor(tableId) == null) {
-                schema.addSchema(tableId, recordFormat);
-            }
+//            if (schema.schemaFor(tableId) == null) {
+//                schema.addSchema(tableId, recordFormat);
+//            }
             return recordFormat;
         }
         catch (Exception e) {

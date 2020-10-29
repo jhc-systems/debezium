@@ -48,14 +48,8 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     /**
      * A field for the password to connect to the AS400. This field has no default value.
      */
-    public static final Field JOURNAL_LIBRARY = Field.create("journal_library",
-            "Journal path to be used retrieving entries");
-
-    /**
-     * A field for the password to connect to the AS400. This field has no default value.
-     */
-    public static final Field JOURNAL_FILE = Field.create("journal_file",
-            "Journal file to be used retrieving entires");
+    public static final Field SCHEMA = Field.create("schema",
+            "schema holding tables to capture");
 
     //
     // public As400ConnectorConfig(Configuration config) {
@@ -87,17 +81,13 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         return config.getString(PASSWORD);
     }
 
-    public String getJournalLibrary() {
-        return config.getString(JOURNAL_LIBRARY);
-    }
-
-    public String getJournalFile() {
-        return config.getString(JOURNAL_FILE);
+    public String getSchema() {
+        return config.getString(SCHEMA);
     }
 
     public JournalPosition getOffset() {
         String receiver = config.getString(As400OffsetContext.JOURNAL_RECEIVER);
-        String lib = config.getString(As400OffsetContext.JOURNAL_LIB);
+        String lib = config.getString(As400OffsetContext.SCHEMA);
         Long offset = config.getLong(As400OffsetContext.EVENT_SEQUENCE);
         return new JournalPosition(offset, receiver, lib);
     }
@@ -131,7 +121,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
     public static Field.Set ALL_FIELDS = Field.setOf(
             JdbcConfiguration.HOSTNAME,
-            USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE,
+            USER, PASSWORD, SCHEMA,
             RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE
             );
 
@@ -139,9 +129,9 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         ConfigDef config = new ConfigDef();
 
         Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME,
-                USER, PASSWORD, JOURNAL_LIBRARY, JOURNAL_FILE);
+                USER, PASSWORD, SCHEMA);
 
-        Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD, As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.JOURNAL_LIB_FIELD);
+        Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD, As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.SCHEMA_FIELD);
 
         // TODO below borrowed form DB2
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,

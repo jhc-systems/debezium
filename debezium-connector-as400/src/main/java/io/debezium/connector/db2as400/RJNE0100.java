@@ -183,18 +183,18 @@ public class RJNE0100 {
      * @param journal
      * @param library
      */
-    public RJNE0100(String journal, String library) {
-        this(journal, library, RECEIVER_LEN);
+    public RJNE0100(String journal, String schema) {
+        this(journal, schema, RECEIVER_LEN);
     }
 
     /**
      * Constructor providing the name of journal, library where the journal resides and the length of receiver variable.
      * Length of the receiver variable must be 16-byte aligned. 
      * @param journal
-     * @param library
+     * @param schema
      * @param rcvLen
      */
-    public RJNE0100(String journal, String library, int rcvLen) {
+    public RJNE0100(String journal, String schema, int rcvLen) {
         // Required Parameter Group:
         // 1 Receiver variable Output Char(*)
         // 2 Length of receiver variable Input Binary(4)
@@ -207,7 +207,7 @@ public class RJNE0100 {
         if (journal == null || journal.trim().length() == 0 || journal.trim().length() > 10) {
             throw new IllegalArgumentException("Journal name must not be null and length must be <= to 10.");
         }
-        if (library == null || library.trim().length() == 0 || library.trim().length() > 10) {
+        if (schema == null || schema.trim().length() == 0 || schema.trim().length() > 10) {
             throw new IllegalArgumentException("Library name must not be null and length must be <= to 10.");
         }
         if ((rcvLen % 16) != 0) {
@@ -220,7 +220,7 @@ public class RJNE0100 {
 
         setReceiver(rcvLen);
         setReceiverLength(rcvLen);
-        setJournal(journal, library);
+        setJournal(journal, schema);
         setFormatName(FORMAT_NAME);
         setJrneToRtv(); // default will retrieve all journal entries
         setErrorCode(ERROR_CODE);

@@ -1,6 +1,8 @@
 package io.debezium.connector.db2as400.command;
 
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.ibm.as400.access.AS400;
 import com.ibm.as400.access.AS400Bin4;
 import com.ibm.as400.access.AS400Text;
+import com.ibm.as400.access.FileAttributes;
 import com.ibm.as400.access.ProgramParameter;
 import com.ibm.as400.access.ServiceProgramCall;
 
@@ -17,15 +20,41 @@ import io.debezium.connector.db2as400.JournalPosition;
 public class JournalInfoRetrieval {
 	static final Logger log = LoggerFactory.getLogger(JournalInfoRetrieval.class);
 	
-	public static JournalPosition getCurrentPosition(AS400 as400, String library, String journalFile) throws Exception {
-		JournalInfo ji = JournalInfoRetrieval.getReceiver(as400, library, journalFile);
+	public static JournalPosition getCurrentPosition(AS400 as400, String schema, String journalFile) throws Exception {
+		JournalInfo ji = JournalInfoRetrieval.getReceiver(as400, schema, journalFile);
 		Integer offset = getOffset(as400, ji);
-		return new JournalPosition(Long.valueOf(offset), ji.name, ji.lib);
+		return new JournalPosition(Long.valueOf(offset), ji.receiver, ji.schema);
 	}
 	
-	public static JournalInfo getReceiver(AS400 as400, String library, String journalFile) throws Exception {
+	static final Pattern JOURNAL_REGEX = Pattern.compile("\\/[^/]*\\/[^/]*\\/(.*).JRN");
+	public static String getJournal(AS400 as400, String schema) throws IllegalStateException {
+		try {
+			FileAttributes fa = new FileAttributes(as400, String.format("/QSYS.LIB/%s.LIB", schema));
+			System.out.println(fa.getJournalIdentifier());
+			Matcher m = JOURNAL_REGEX.matcher(fa.getJournal());
+			if (m.matches()) {
+				return m.group(1);
+			} else {
+				System.out.println("no match");
+			}
+		} catch (Exception e) {
+			throw new IllegalStateException("Journal not found", e);
+		}
+		throw new IllegalStateException("Journal not found");
+	}
+
+	
+	/**
+	 * @see https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_74/apis/QJORJRNI.htm
+	 * @param as400
+	 * @param schema
+	 * @param journalFile
+	 * @return
+	 * @throws Exception
+	 */
+	public static JournalInfo getReceiver(AS400 as400, String schema, String journalFile) throws Exception {
 		int rcvLen = 32768;
-		String jrnLib = padRight(journalFile, 10) + padRight(library, 10);
+		String jrnLib = padRight(journalFile, 10) + padRight(schema, 10);
 		String format = "RJRN0200";
 		ProgramParameter[] parameters = new ProgramParameter[] {
 				new ProgramParameter(ProgramParameter.PASS_BY_REFERENCE, rcvLen),
@@ -43,10 +72,17 @@ public class JournalInfoRetrieval {
 		});
 	}
 	
+	/**
+	 * @see https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_74/apis/QJORRCVI.htm
+	 * @param as400
+	 * @param journalInfo
+	 * @return
+	 * @throws Exception
+	 */
 	private static Integer getOffset(AS400 as400, JournalInfo journalInfo)
 			throws Exception {
 		int rcvLen = 32768;
-		String jrnLib = padRight(journalInfo.name, 10) + padRight(journalInfo.lib, 10);
+		String jrnLib = padRight(journalInfo.receiver, 10) + padRight(journalInfo.schema, 10);
 		String format = "RRCV0100";
 		ProgramParameter[] parameters = new ProgramParameter[] {
 				new ProgramParameter(ProgramParameter.PASS_BY_REFERENCE, rcvLen),
@@ -57,9 +93,10 @@ public class JournalInfoRetrieval {
 
 		return callServiceProgram(as400, "/QSYS.LIB/QJOURNAL.SRVPGM", "QjoRtvJrnReceiverInformation", parameters, (byte[] data) -> {
 			String journalName = decodeString(data, 8, 10);
+//			Integer firstSequence = decodeInt(data, 72);
 			Integer lastSequence = decodeInt(data, 80);
-			if (!journalName.equals(journalInfo.name)) {
-				String msg = String.format("journal names don't match requested %s got %s", journalInfo.name, journalName);
+			if (!journalName.equals(journalInfo.receiver)) {
+				String msg = String.format("journal names don't match requested %s got %s", journalInfo.receiver, journalName);
 				throw new Exception(msg);
 			}
 			return lastSequence;
@@ -109,13 +146,13 @@ public class JournalInfoRetrieval {
 	}
 	
 	public static class JournalInfo {
-		public String name;
-		public String lib;
+		public String receiver;
+		public String schema;
 
 		public JournalInfo(String receiver, String lib) {
 			super();
-			this.name = receiver;
-			this.lib = lib;
+			this.receiver = receiver;
+			this.schema = lib;
 		}
 	}	
 	
