@@ -5,15 +5,17 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Map;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fnz.db2.journal.retrieve.JournalPosition;
 
 import io.debezium.config.Field;
 import io.debezium.connector.SnapshotRecord;
@@ -107,7 +109,7 @@ public class As400OffsetContext implements OffsetContext {
         return sourceInfo.schema();
     }
 
-    public void setSourceTime(Date time) {
+    public void setSourceTime(Timestamp time) {
         sourceInfo.setSourceTime(time.toInstant());
     }
 
@@ -158,7 +160,7 @@ public class As400OffsetContext implements OffsetContext {
     public void setJournalReciever(String journalReciever, String schema) {
         position.setJournalReciever(journalReciever, schema);
     }
-
+    
     public static class Loader implements OffsetContext.Loader {
 
         private final As400ConnectorConfig connectorConfig;

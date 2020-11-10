@@ -46,8 +46,7 @@ public class As400StreamingConnectorIT extends AbstractConnectorTest {
                 .with(JdbcConfiguration.DATABASE, "")
                 .with(As400ConnectorConfig.USER, "MSDEV")
                 .with(As400ConnectorConfig.PASSWORD, "MSDEV")
-                .with(As400ConnectorConfig.JOURNAL_LIBRARY, "QSQJRN")
-                .with(As400ConnectorConfig.JOURNAL_FILE, "MSDEVT")
+                .with(As400ConnectorConfig.SCHEMA, "MSDEVT")
                 .build();
 
         // Start the connector ...

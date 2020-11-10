@@ -5,22 +5,31 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.util.HashMap;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.debezium.connector.db2as400.adaptors.FieldDescriptionToTable;
+import com.fnz.db2.journal.retrieve.SchemaCacheIF;
+import com.fnz.db2.journal.retrieve.SchemaCacheIF.TableInfo;
+
+import io.debezium.relational.Column;
+import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.RelationalDatabaseSchema;
 import io.debezium.relational.Table;
+import io.debezium.relational.TableEditor;
 import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchemaBuilder;
-import io.debezium.schema.SchemaChangeEvent;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.SchemaNameAdjuster;
 
-public class As400DatabaseSchema extends RelationalDatabaseSchema {
+public class As400DatabaseSchema extends RelationalDatabaseSchema implements SchemaCacheIF {
 
     private static final Logger log = LoggerFactory.getLogger(As400DatabaseSchema.class);
     private final As400ConnectorConfig config;
+	private final HashMap<String, TableInfo> map = new HashMap<>();
+
 
     public As400DatabaseSchema(As400ConnectorConfig config,
                                TopicSelector<TableId> topicSelector,
@@ -48,4 +57,33 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema {
     public String getSchemaName() {
     	return config.getSchema();
     }
+
+	@Override
+	public void store(String name, TableInfo entry) {
+		map.put(name, entry);
+		
+		TableEditor editor = Table.editor();
+		TableId id = TableId.parse(name);
+		editor.tableId(id);
+		List<Structure> structure = entry.getStructure();
+		for (Structure col: structure) {
+			ColumnEditor ceditor = Column.editor();
+			ceditor.type(col.getType());
+			ceditor.length(col.getLength());
+			ceditor.scale(col.getPrecision());
+			ceditor.name(col.getName());
+			
+			editor.addColumn(ceditor.create());
+		}
+		
+		Table table = editor.create();
+		addSchema(table);
+	}
+
+	@Override
+	public TableInfo retrieve(String name) {
+		return map.get(name);
+	}
+    
+    
 }

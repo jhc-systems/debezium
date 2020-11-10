@@ -18,6 +18,11 @@
 			<artifactId>jt400-jdk8</artifactId>
 			<version>10.2</version>
 		</dependency>
+		<dependency>
+			<groupId>journal.db2.fnz.com</groupId>
+			<artifactId>journal-parsing</artifactId>
+			<version>0.0.1</version>
+		</dependency>
 		
         <dependency>
             <groupId>io.debezium</groupId>
