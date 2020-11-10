@@ -1,3 +1,8 @@
+/*
+ * Copyright Debezium Authors.
+ *
+ * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
+ */
 package io.debezium.connector.db2as400.command;
 
 import java.util.Arrays;
@@ -16,7 +21,11 @@ import com.ibm.as400.access.ServiceProgramCall;
 
 import io.debezium.connector.db2as400.JournalPosition;
 
-
+/**
+ * @see http://www.setgetweb.com/p/i5/rzakiwrkjrna.htm
+ * @author sillencem
+ *
+ */
 public class JournalInfoRetrieval {
 	static final Logger log = LoggerFactory.getLogger(JournalInfoRetrieval.class);
 	

@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ibm.as400.access.RecordFormat;
 
+import io.debezium.connector.db2as400.As400RpcConnection.BlockingRecieverConsumer;
 import io.debezium.connector.db2as400.adaptors.JornalRecordFormats;
 import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.ErrorHandler;
@@ -100,127 +101,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         // Integer offset = offsetContext.getSequence();
         while (context.isRunning()) {
             try {
-                dataConnection.getJournalEntries(offsetContext, (nextOffset, r, tableId, member) -> {
-                    boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
-
-                    if (!alwaysProcess.contains(r.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages
-                        // log.debug("table {} excluded skipping", tableId);
-                        return;
-                    }
-
-                    String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
-                    log.info("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
-                    switch (entryType) {
-                        case "C.SC": {
-                            // start commit
-                            String txId = r.getCommitCycleId();
-                            log.debug("begin transaction: {}", txId);
-                            TransactionContext txc = new TransactionContext();
-                            txc.beginTransaction(txId);
-                            txMap.put(txId, txc);
-                            log.info("start transaction id {} tx {} table {}", nextOffset, txId, tableId);
-                            dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
-                        }
-                            break;
-                        case "C.CM": {
-                            // end commit
-                            // TOOD transaction must be provided by the OffsetContext
-                            String txId = r.getCommitCycleId();
-                            TransactionContext txc = txMap.remove(txId);
-                            log.info("commit transaction id {} tx {} table {}", nextOffset, txId, tableId);
-                            if (txc != null) {
-                                txc.endTransaction();
-                                dispatcher.dispatchTransactionCommittedEvent(offsetContext);
-                            }
-                        }
-                            break;
-// TODO get latest schema / decode entry 
-//                          Tables tables = new Tables();
-//                          jdbcConnection.readSchema(
-//                          		tables,
-//                                  null,
-//                                  schema,
-//                                  connectorConfig.getTableFilters().dataCollectionFilter(),
-//                                  null,
-//                                  false);
-
-                        case "R.UB": {
-                            // before image
-                            tableId.schema();
-                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
-                            cacheBefore(tableId, r.getEntryDateString(), dataBefore);
-                        }
-                            break;
-                        case "R.UP": {
-                            // after image
-                            // before image is meant to have been immediately before
-                            Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
-
-                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                            Object[] dataNext = r.getEntrySpecificData(recordFormat);
-                            offsetContext.setSourceTime(r.getEntryDateOrNow());
-
-                            String txId = r.getCommitCycleId();
-                            TransactionContext txc = txMap.get(txId);
-                            offsetContext.setTransaction(txc);
-
-                            log.info("update event id {} tx {} table {}", nextOffset, txId, tableId);
-
-                            dispatcher.dispatchDataChangeEvent(tableId,
-                                    new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
-                        }
-                            break;
-                        case "R.PX":
-                        case "R.PT": {
-                            // record added
-                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                            Object[] dataNext = r.getEntrySpecificData(recordFormat);
-                            offsetContext.setSourceTime(r.getEntryDateOrNow());
-
-                            String txId = r.getCommitCycleId();
-                            TransactionContext txc = txMap.get(txId);
-                            offsetContext.setTransaction(txc);
-                            if (txc != null) {
-                                txc.event(tableId);
-                            }
-
-                            log.info("insert event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
-                            dispatcher.dispatchDataChangeEvent(tableId,
-                                    new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
-                        }
-                            break;
-                        case "R.DL": {
-                            // record deleted
-                            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
-                            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
-
-                            offsetContext.setSourceTime(r.getEntryDateOrNow());
-
-                            String txId = r.getCommitCycleId();
-                            TransactionContext txc = txMap.get(txId);
-                            offsetContext.setTransaction(txc);
-                            if (txc != null) {
-                                txc.event(tableId);
-                            }
-
-                            log.info("delete event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
-                            dispatcher.dispatchDataChangeEvent(tableId,
-                                    new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
-                        }
-                            break;
-                        case "J.NR": {
-                            RecordFormat jrf = JornalRecordFormats.journalReciever();
-//                            FieldDescription[] fields = jrf.getFieldDescriptions();
-                            Object[] os = r.getEntrySpecificData(jrf);
-
-                            if (os.length > 1) {
-                                offsetContext.setJournalReciever(os[0].toString(), os[1].toString());
-                            }
-                        }
-                            break;
-                    }
-                }, () -> {
+                dataConnection.getJournalEntries(offsetContext, processJournalEntries(), () -> {
                     log.debug("sleep");
                     metronome.pause();
                 });
@@ -231,5 +112,129 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
             }
         }
     }
+
+	private BlockingRecieverConsumer processJournalEntries() {
+		return (nextOffset, r, tableId, member) -> {
+		    boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
+
+		    if (!alwaysProcess.contains(r.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages
+		        // log.debug("table {} excluded skipping", tableId);
+		        return;
+		    }
+
+		    String entryType = String.format("%s.%s", r.getJournalCode(), r.getEntryType());
+		    log.info("next event: {} type: {} table: {}", r.getSequenceNumber(), entryType, tableId.table());
+		    switch (entryType) {
+		        case "C.SC": {
+		            // start commit
+		            String txId = r.getCommitCycleId();
+		            log.debug("begin transaction: {}", txId);
+		            TransactionContext txc = new TransactionContext();
+		            txc.beginTransaction(txId);
+		            txMap.put(txId, txc);
+		            log.info("start transaction id {} tx {} table {}", nextOffset, txId, tableId);
+		            dispatcher.dispatchTransactionStartedEvent(txId, offsetContext);
+		        }
+		            break;
+		        case "C.CM": {
+		            // end commit
+		            // TOOD transaction must be provided by the OffsetContext
+		            String txId = r.getCommitCycleId();
+		            TransactionContext txc = txMap.remove(txId);
+		            log.info("commit transaction id {} tx {} table {}", nextOffset, txId, tableId);
+		            if (txc != null) {
+		                txc.endTransaction();
+		                dispatcher.dispatchTransactionCommittedEvent(offsetContext);
+		            }
+		        }
+		            break;
+// TODO get latest schema / decode entry 
+//                          Tables tables = new Tables();
+//                          jdbcConnection.readSchema(
+//                          		tables,
+//                                  null,
+//                                  schema,
+//                                  connectorConfig.getTableFilters().dataCollectionFilter(),
+//                                  null,
+//                                  false);
+
+		        case "R.UB": {
+		            // before image
+		            tableId.schema();
+		            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+		            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
+		            cacheBefore(tableId, r.getEntryDateString(), dataBefore);
+		        }
+		            break;
+		        case "R.UP": {
+		            // after image
+		            // before image is meant to have been immediately before
+		            Object[] dataBefore = getBefore(tableId, r.getEntryDateString());
+
+		            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+		            Object[] dataNext = r.getEntrySpecificData(recordFormat);
+		            offsetContext.setSourceTime(r.getEntryDateOrNow());
+
+		            String txId = r.getCommitCycleId();
+		            TransactionContext txc = txMap.get(txId);
+		            offsetContext.setTransaction(txc);
+
+		            log.info("update event id {} tx {} table {}", nextOffset, txId, tableId);
+
+		            dispatcher.dispatchDataChangeEvent(tableId,
+		                    new As400ChangeRecordEmitter(offsetContext, Operation.UPDATE, dataBefore, dataNext, clock));
+		        }
+		            break;
+		        case "R.PX":
+		        case "R.PT": {
+		            // record added
+		            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+		            Object[] dataNext = r.getEntrySpecificData(recordFormat);
+		            offsetContext.setSourceTime(r.getEntryDateOrNow());
+
+		            String txId = r.getCommitCycleId();
+		            TransactionContext txc = txMap.get(txId);
+		            offsetContext.setTransaction(txc);
+		            if (txc != null) {
+		                txc.event(tableId);
+		            }
+
+		            log.info("insert event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
+		            dispatcher.dispatchDataChangeEvent(tableId,
+		                    new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
+		        }
+		            break;
+		        case "R.DL": {
+		            // record deleted
+		            DynamicRecordFormat recordFormat = dataConnection.getRecordFormat(tableId, member, schema);
+		            Object[] dataBefore = r.getEntrySpecificData(recordFormat);
+
+		            offsetContext.setSourceTime(r.getEntryDateOrNow());
+
+		            String txId = r.getCommitCycleId();
+		            TransactionContext txc = txMap.get(txId);
+		            offsetContext.setTransaction(txc);
+		            if (txc != null) {
+		                txc.event(tableId);
+		            }
+
+		            log.info("delete event id {} tx {} table {}", offsetContext.getPosition().toString(), txId, tableId);
+		            dispatcher.dispatchDataChangeEvent(tableId,
+		                    new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
+		        }
+		            break;
+		        case "J.NR": {
+		            RecordFormat jrf = JornalRecordFormats.journalReciever();
+//                            FieldDescription[] fields = jrf.getFieldDescriptions();
+		            Object[] os = r.getEntrySpecificData(jrf);
+
+		            if (os.length > 1) {
+		                offsetContext.setJournalReciever(os[0].toString(), os[1].toString());
+		            }
+		        }
+		            break;
+		    }
+		};
+	}
 
 }
