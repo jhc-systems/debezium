@@ -70,6 +70,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     private final Duration pollInterval;
     private final As400ConnectorConfig connectorConfig;
     private final Map<String, TransactionContext> txMap = new HashMap<>();
+    private final String database;
 
     public As400StreamingChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext offsetContext,
                                            As400RpcConnection dataConnection, As400JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher,
@@ -83,6 +84,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         this.schema = schema;
         this.offsetContext = offsetContext;
         this.pollInterval = connectorConfig.getPollInterval();
+    	this.database = jdbcConnection.getRealDatabaseName();
         try {
         	this.fileDecoder = new JdbcFileDecoder(jdbcConnection.connection(), connectorConfig.getSchema(), schema);
         } catch (SQLException e) {
@@ -126,10 +128,11 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     }
 
 	private BlockingRecieverConsumer processJournalEntries() {
-		return (nextOffset, r, tableId, member) -> {
+		return (nextOffset, r, eheader) -> {
 			try {
+                TableId tableId = new TableId(database, eheader.getLibrary(), eheader.getFile()); // TODO!
+				
 			    boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
-			    EntryHeader eheader = r.getEntryHeader();
 	
 			    if (!alwaysProcess.contains(eheader.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages
 			        // log.debug("table {} excluded skipping", tableId);
@@ -162,16 +165,6 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 			            }
 			        }
 			            break;
-	// TODO get latest schema / decode entry 
-	//                          Tables tables = new Tables();
-	//                          jdbcConnection.readSchema(
-	//                          		tables,
-	//                                  null,
-	//                                  schema,
-	//                                  connectorConfig.getTableFilters().dataCollectionFilter(),
-	//                                  null,
-	//                                  false);
-	
 			        case "R.UB": {
 			            // before image
 			            tableId.schema();
@@ -241,6 +234,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 			            break;
 			    }
 			} catch (Exception e) {
+				e.printStackTrace();
 				throw new RpcException("", e);
 			}
 		};

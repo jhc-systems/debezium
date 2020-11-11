@@ -59,30 +59,35 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
     }
 
 	@Override
-	public void store(String name, TableInfo entry) {
-		map.put(name, entry);
+	public void store(String database, String schema, String tableName, TableInfo entry) {
+		map.put(database + schema + tableName, entry);
 		
 		TableEditor editor = Table.editor();
-		TableId id = TableId.parse(name);
+		TableId id = new TableId(database, schema, tableName);
 		editor.tableId(id);
 		List<Structure> structure = entry.getStructure();
 		for (Structure col: structure) {
 			ColumnEditor ceditor = Column.editor();
+			ceditor.jdbcType(col.getJdcbType());
 			ceditor.type(col.getType());
 			ceditor.length(col.getLength());
 			ceditor.scale(col.getPrecision());
 			ceditor.name(col.getName());
+			ceditor.autoIncremented(col.isAutoinc());
+			ceditor.optional(col.isOptional());
+			ceditor.position(col.getPosition());
 			
 			editor.addColumn(ceditor.create());
 		}
 		
+		editor.setPrimaryKeyNames(entry.getPrimaryKeys());
 		Table table = editor.create();
 		addSchema(table);
 	}
 
 	@Override
-	public TableInfo retrieve(String name) {
-		return map.get(name);
+	public TableInfo retrieve(String database, String schema, String tableName) {
+		return map.get(database + schema + tableName);
 	}
     
     

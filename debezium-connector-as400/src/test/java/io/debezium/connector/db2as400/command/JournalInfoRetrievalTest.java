@@ -1,13 +1,17 @@
 package io.debezium.connector.db2as400.command;
 
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.*;
 
 import org.junit.Test;
 
+import com.fnz.db2.journal.retrieve.JournalInfoRetrieval;
+import com.fnz.db2.journal.retrieve.JournalPosition;
 import com.ibm.as400.access.AS400;
-
-import io.debezium.connector.db2as400.JournalPosition;
 
 public class JournalInfoRetrievalTest {
 

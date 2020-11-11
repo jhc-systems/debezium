@@ -15,6 +15,8 @@ import com.fnz.db2.journal.retrieve.RetrieveJournal;
 import com.fnz.db2.journal.retrieve.rjne0200.EntryHeader;
 import com.ibm.as400.access.AS400;
 
+import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 
 public class As400RpcConnection implements AutoCloseable {
@@ -57,13 +59,10 @@ public class As400RpcConnection implements AutoCloseable {
                     // TODO try round inner loop?
                     try {
                     	EntryHeader eheader = r.getEntryHeader();
-                        Long currentOffset = Long.valueOf(eheader.getSequenceNumber());
-                        String file = eheader.getFile();
-                        String lib = eheader.getLibrary();
-                        String member = eheader.getMember();
-                        TableId tableId = new TableId("", lib, file);
+                        Long currentOffset = eheader.getSequenceNumber();
+ 
+                        consumer.accept(currentOffset, r, eheader);
                         offsetCtx.setSequence(currentOffset + 1);
-                        consumer.accept(currentOffset, r, tableId, member);
                     }
                     catch (Exception e) {
                         if (exception == null) {
@@ -90,7 +89,7 @@ public class As400RpcConnection implements AutoCloseable {
     }
 
     public static interface BlockingRecieverConsumer {
-        void accept(Long offset, RetrieveJournal r, TableId tableId, String member) throws RpcException, InterruptedException;
+        void accept(Long offset, RetrieveJournal r, EntryHeader eheader) throws RpcException, InterruptedException;
     }
 
     public static interface BlockingNoDataConsumer {
