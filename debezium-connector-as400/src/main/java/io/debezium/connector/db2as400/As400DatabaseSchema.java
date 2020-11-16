@@ -6,19 +6,15 @@
 package io.debezium.connector.db2as400;
 
 import java.util.HashMap;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fnz.db2.journal.retrieve.SchemaCacheIF;
-import com.fnz.db2.journal.retrieve.SchemaCacheIF.TableInfo;
 
-import io.debezium.relational.Column;
-import io.debezium.relational.ColumnEditor;
+import io.debezium.connector.db2as400.conversion.SchemaInfoConversion;
 import io.debezium.relational.RelationalDatabaseSchema;
 import io.debezium.relational.Table;
-import io.debezium.relational.TableEditor;
 import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchemaBuilder;
 import io.debezium.schema.TopicSelector;
@@ -45,12 +41,10 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
         this.config = config;
     }
     
-//    public void addSchema(TableId tableId, DynamicRecordFormat format) {
-//        Table table = FieldDescriptionToTable.toTable(tableId, format);
-//        this.buildAndRegisterSchema(table);
-//    }
-    
     public void addSchema(Table table) {
+    	TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
+    	TableId id = table.id();
+    	map.put(id.catalog() + id.schema() + id.table(), tableInfo);
         this.buildAndRegisterSchema(table);
     }
     
@@ -59,29 +53,10 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
     }
 
 	@Override
-	public void store(String database, String schema, String tableName, TableInfo entry) {
-		map.put(database + schema + tableName, entry);
+	public void store(String database, String schema, String tableName, TableInfo tableInfo) {
+		map.put(database + schema + tableName, tableInfo);
 		
-		TableEditor editor = Table.editor();
-		TableId id = new TableId(database, schema, tableName);
-		editor.tableId(id);
-		List<Structure> structure = entry.getStructure();
-		for (Structure col: structure) {
-			ColumnEditor ceditor = Column.editor();
-			ceditor.jdbcType(col.getJdcbType());
-			ceditor.type(col.getType());
-			ceditor.length(col.getLength());
-			ceditor.scale(col.getPrecision());
-			ceditor.name(col.getName());
-			ceditor.autoIncremented(col.isAutoinc());
-			ceditor.optional(col.isOptional());
-			ceditor.position(col.getPosition());
-			
-			editor.addColumn(ceditor.create());
-		}
-		
-		editor.setPrimaryKeyNames(entry.getPrimaryKeys());
-		Table table = editor.create();
+		Table table = SchemaInfoConversion.tableInfo2Table(database, schema, tableName, tableInfo);
 		addSchema(table);
 	}
 

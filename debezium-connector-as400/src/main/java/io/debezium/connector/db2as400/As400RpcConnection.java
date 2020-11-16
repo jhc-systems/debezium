@@ -53,7 +53,7 @@ public class As400RpcConnection implements AutoCloseable {
         	RetrieveJournal r = new RetrieveJournal(as400, journalLibrary, config.getSchema());
             JournalPosition position = offsetCtx.getPosition();
             boolean success = r.retrieveJournal(position);
-            log.debug("QjoRetrieveJournalEntries: " + success);
+            log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
             if (success) {
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
