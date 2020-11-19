@@ -23,216 +23,244 @@
 			<artifactId>journal-parsing</artifactId>
 			<version>0.0.1</version>
 		</dependency>
-		
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-core</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>log4j-over-slf4j</artifactId>
-          <version>${version.org.slf4j}</version>
-        </dependency>
-        
 
-   		<dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-runtime</artifactId>
-            <scope>provided</scope>
-		</dependency>
-   		<dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-             <version>1.2.3</version>
-            <scope>provided</scope>
-		</dependency>
 		<dependency>
-		  <groupId>org.codehaus.groovy</groupId>
-		  <artifactId>groovy</artifactId>
-		  <scope>provided</scope>
-		</dependency>
-		<dependency>
-		  <groupId>org.osgi</groupId>
-		  <artifactId>core</artifactId>
-		  <version>4.3.0</version>
-		  <scope>provided</scope>
-		</dependency>
-		<dependency>
-		  <groupId>javax.mail</groupId>
-		  <artifactId>mail</artifactId>
-		  <version>1.4.7</version>
-		  <scope>provided</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.abego.treelayout</groupId>
-		    <artifactId>org.abego.treelayout.core</artifactId>
-		    <version>1.0.1</version>
-		  <scope>provided</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.antlr</groupId>
-		    <artifactId>stringtemplate</artifactId>
-		    <version>4.0.2</version>
-		  <scope>provided</scope>
-		</dependency>
-		<dependency>
-		    <groupId>org.eclipse.jetty</groupId>
-		    <artifactId>jetty-jmx</artifactId>
-		    <version>9.4.20.v20190813</version>
-		  <scope>provided</scope>    
+			<groupId>io.debezium</groupId>
+			<artifactId>debezium-core</artifactId>
 		</dependency>
 
-        <dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		    <scope>provided</scope> 
-		</dependency>
-        <dependency>
-		    <groupId>org.reflections</groupId>
-		    <artifactId>reflections</artifactId>
-		    <version>0.9.12</version>
-		    <scope>provided</scope> 
-		</dependency>
-         <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-core</artifactId>
-		    <scope>provided</scope> 
-        </dependency>       
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>log4j-over-slf4j</artifactId>
-		    <version>1.7.30</version>
-		    <scope>provided</scope>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>connect-api</artifactId>
+			<scope>provided</scope>
 		</dependency>
-			<dependency>
-			  <groupId>org.apache.kafka</groupId>
-			  <artifactId>kafka_2.12</artifactId>
-			</dependency>
-
-               <dependency>
-                   <groupId>io.confluent</groupId>
-                   <artifactId>kafka-connect-avro-converter</artifactId>
-                       <scope>provided</scope>    
-               </dependency>
-
-<dependency>
-        <groupId>io.confluent</groupId>
-        <artifactId>kafka-schema-serializer</artifactId>
-        <version>5.5.1</version>
-</dependency>
-                <!-- Testing -->
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-embedded</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-core</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-embedded</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-assert</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-avro-converter</artifactId>
-            <scope>test</scope>
-        </dependency-->
 		<dependency>
-		      <groupId>org.awaitility</groupId>
-		      <artifactId>awaitility</artifactId>
-		      <scope>test</scope>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<version>${version.org.slf4j}</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>connect-runtime</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.2.3</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.osgi</groupId>
+			<artifactId>core</artifactId>
+			<version>4.3.0</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>javax.mail</groupId>
+			<artifactId>mail</artifactId>
+			<version>1.4.7</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.abego.treelayout</groupId>
+			<artifactId>org.abego.treelayout.core</artifactId>
+			<version>1.0.1</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>stringtemplate</artifactId>
+			<version>4.0.2</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-jmx</artifactId>
+			<version>9.4.20.v20190813</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+			<version>0.9.12</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.debezium</groupId>
+			<artifactId>debezium-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<version>1.7.30</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka_2.12</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.confluent</groupId>
+			<artifactId>kafka-connect-avro-converter</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.confluent</groupId>
+			<artifactId>kafka-schema-serializer</artifactId>
+			<version>5.5.1</version>
+		</dependency>
+		<!-- Testing -->
+		<dependency>
+			<groupId>io.debezium</groupId>
+			<artifactId>debezium-embedded</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.debezium</groupId>
+			<artifactId>debezium-core</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.debezium</groupId>
+			<artifactId>debezium-embedded</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.easytesting</groupId>
+			<artifactId>fest-assert</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- dependency> <groupId>io.confluent</groupId> <artifactId>kafka-connect-avro-converter</artifactId> 
+			<scope>test</scope> </dependency -->
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
+
 	<build>
-	<plugins>
-	
-            <!-- plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.1.1</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/assembly.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin -->
-	
-            <plugin>
-                <groupId>io.fabric8</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
+		<plugins>
 
-                <configuration>
-                    <images>
-                        <image>
-                            <alias>debezium-connector-as400</alias>
-                            <name>eu.gcr.io/internal-257008/debezium-connector-as400:snapshot</name>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.3.0</version>
+				<configuration>
+					<appendAssemblyId>false</appendAssemblyId>
+					<finalName>preassembled</finalName>
+					<outputDirectory>target/assembly</outputDirectory>
+					<descriptors>
+						<descriptor>src/main/assembly/assembly.xml</descriptor>
+					</descriptors>
+				</configuration>
+				<executions>
+					<execution>
+						<id>preassemble-files</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
-                            <build>
-                                <assembly>
-                                    <descriptor>docker-assembly.xml</descriptor>
-                                </assembly>
-                                <dockerFile>Dockerfile</dockerFile>
-                            </build>
+			<plugin>
+				<groupId>org.eclipse.jkube</groupId>
+				<artifactId>kubernetes-maven-plugin</artifactId>
+				<version>1.0.2</version>
 
-                        </image>
-                    </images>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>build</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-	
-	</plugins>
+				<configuration>
+					<images>
+						<image>
+							<name>eu.gcr.io/internal-257008/debezium-connector-as400:${project.version}</name>
+							<alias>debezium-connector-as400</alias>
+							
+							<build>
+								<from>openjdk:11.0.9.1-jdk</from>
+
+								<runCmds>
+									<run>useradd -d /app -m jhcadmin</run>
+									<run>chown -R jhcadmin:jhcadmin /app</run>
+								</runCmds>
+
+								<user>jhcadmin</user>
+								<workdir>/app</workdir>
+								
+								<ports>
+									<port>8083</port>
+								</ports>
+
+								<entryPoint>
+									<exec>
+										<arg>/bin/dash</arg>
+										<arg>entrypoint.sh</arg>
+									</exec>
+								</entryPoint>
+								<assembly>
+									<targetDir>/</targetDir>
+									<excludeFinalOutputArtifact>true</excludeFinalOutputArtifact>
+									<inline>
+										<fileSets>
+											<fileSet>
+												<directory>target/assembly/preassembled</directory>
+												<outputDirectory>/app</outputDirectory>
+											</fileSet>
+										</fileSets>
+									</inline>
+								</assembly>
+							</build>
+						</image>
+					</images>
+				</configuration>
+				<executions>
+					<execution>
+						<id>build</id>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
 	</build>
 </project>

@@ -33,7 +33,8 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
     private final EventDispatcher<TableId> dispatcher;
     private final As400DatabaseSchema schema;
 
-    public As400SnapshotChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext previousOffset, As400RpcConnection rpcConnection, As400JdbcConnection jdbcConnection,
+    public As400SnapshotChangeEventSource(As400ConnectorConfig connectorConfig, As400OffsetContext previousOffset, As400RpcConnection rpcConnection,
+                                          As400JdbcConnection jdbcConnection,
                                           As400DatabaseSchema schema,
                                           EventDispatcher<TableId> dispatcher, Clock clock, SnapshotProgressListener snapshotProgressListener) {
 
@@ -60,12 +61,12 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected void determineSnapshotOffset(RelationalSnapshotContext snapshotContext) throws Exception {
-    	JournalPosition position = rpcConnection.getCurrentPosition();
-    	// move on past last entry so we don't process it again
-    	if (position.isOffsetSet()) {
-    		position.setOffset(position.getOffset() + 1);
-    	}
-    	snapshotContext.offset = new As400OffsetContext(connectorConfig, position);
+        JournalPosition position = rpcConnection.getCurrentPosition();
+        // move on past last entry so we don't process it again
+        if (position.isOffsetSet()) {
+            position.setOffset(position.getOffset() + 1);
+        }
+        snapshotContext.offset = new As400OffsetContext(connectorConfig, position);
     }
 
     @Override
@@ -92,12 +93,12 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,
                     false);
-            
+
         }
-        
-        for (TableId id: snapshotContext.capturedTables) {
-        	Table table = snapshotContext.tables.forTable(id);
-        	schema.addSchema(table);
+
+        for (TableId id : snapshotContext.capturedTables) {
+            Table table = snapshotContext.tables.forTable(id);
+            schema.addSchema(table);
         }
         System.out.println(snapshotContext.tables);
     }
@@ -123,7 +124,7 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
-    	return Optional.of(String.format("SELECT * FROM %s.%s", tableId.schema(), tableId.table()));
+        return Optional.of(String.format("SELECT * FROM %s.%s", tableId.schema(), tableId.table()));
     }
 
     @Override
@@ -133,20 +134,20 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
     @Override
     protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
-    	
+
         if (previousOffset != null && !previousOffset.isSnapshotRunning()) {
-        	if (previousOffset instanceof As400OffsetContext) {
-        		JournalPosition pos = ((As400OffsetContext)previousOffset).getPosition();
-	        	if (pos.isOffsetSet())
-	        		return new SnapshottingTask(false, false);
-        	}
+            if (previousOffset instanceof As400OffsetContext) {
+                JournalPosition pos = ((As400OffsetContext) previousOffset).getPosition();
+                if (pos.isOffsetSet())
+                    return new SnapshottingTask(false, false);
+            }
         }
         return new SnapshottingTask(true, connectorConfig.getSnapshotMode().includeData());
     }
 
     @Override
     protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext) throws Exception {
-    	return new RelationalSnapshotContext(jdbcConnection.getRealDatabaseName());
+        return new RelationalSnapshotContext(jdbcConnection.getRealDatabaseName());
     }
 
 }

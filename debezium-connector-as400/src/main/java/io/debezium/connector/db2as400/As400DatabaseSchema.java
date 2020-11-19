@@ -24,10 +24,10 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
 
     private static final Logger log = LoggerFactory.getLogger(As400DatabaseSchema.class);
     private final As400ConnectorConfig config;
-	private final HashMap<String, TableInfo> map = new HashMap<>();
+    private final HashMap<String, TableInfo> map = new HashMap<>();
+    private final As400RpcConnection rpcConnection;
 
-
-    public As400DatabaseSchema(As400ConnectorConfig config,
+    public As400DatabaseSchema(As400ConnectorConfig config, As400RpcConnection rpcConnection,
                                TopicSelector<TableId> topicSelector,
                                SchemaNameAdjuster schemaNameAdjuster) {
         super(config, topicSelector, config.getTableFilters().dataCollectionFilter(),
@@ -39,31 +39,31 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
                         config.getSanitizeFieldNames()),
                 false, config.getKeyMapper());
         this.config = config;
+        this.rpcConnection = rpcConnection;
     }
-    
+
     public void addSchema(Table table) {
-    	TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
-    	TableId id = table.id();
-    	map.put(id.catalog() + id.schema() + id.table(), tableInfo);
+        TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
+        TableId id = table.id();
+        map.put(id.catalog() + id.schema() + id.table(), tableInfo);
         this.buildAndRegisterSchema(table);
     }
-    
+
     public String getSchemaName() {
-    	return config.getSchema();
+        return config.getSchema();
     }
 
-	@Override
-	public void store(String database, String schema, String tableName, TableInfo tableInfo) {
-		map.put(database + schema + tableName, tableInfo);
-		
-		Table table = SchemaInfoConversion.tableInfo2Table(database, schema, tableName, tableInfo);
-		addSchema(table);
-	}
+    @Override
+    public void store(String database, String schema, String tableName, TableInfo tableInfo) {
+        map.put(database + schema + tableName, tableInfo);
 
-	@Override
-	public TableInfo retrieve(String database, String schema, String tableName) {
-		return map.get(database + schema + tableName);
-	}
-    
-    
+        Table table = SchemaInfoConversion.tableInfo2Table(database, schema, tableName, tableInfo);
+        addSchema(table);
+    }
+
+    @Override
+    public TableInfo retrieve(String database, String schema, String tableName) {
+        return map.get(database + schema + tableName);
+    }
+
 }

@@ -15,10 +15,6 @@ import com.fnz.db2.journal.retrieve.RetrieveJournal;
 import com.fnz.db2.journal.retrieve.rjne0200.EntryHeader;
 import com.ibm.as400.access.AS400;
 
-import io.debezium.jdbc.JdbcConfiguration;
-import io.debezium.jdbc.JdbcConnection;
-import io.debezium.relational.TableId;
-
 public class As400RpcConnection implements AutoCloseable {
     private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
@@ -37,12 +33,17 @@ public class As400RpcConnection implements AutoCloseable {
     public void close() throws Exception {
         this.as400.disconnectAllServices();
     }
-    
+
+    public AS400 getConnection() {
+        return as400;
+    }
+
     public JournalPosition getCurrentPosition() throws RpcException {
-    	try {
-    		return JournalInfoRetrieval.getCurrentPosition(as400, config.getSchema(),journalLibrary);
-//    		return new JournalPosition(null, null, null);
-    	} catch (Exception e) {
+        try {
+            return JournalInfoRetrieval.getCurrentPosition(as400, config.getSchema(), journalLibrary);
+            // return new JournalPosition(null, null, null);
+        }
+        catch (Exception e) {
             throw new RpcException("Failed to find offset", e);
         }
     }
@@ -50,7 +51,7 @@ public class As400RpcConnection implements AutoCloseable {
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
         try {
-        	RetrieveJournal r = new RetrieveJournal(as400, journalLibrary, config.getSchema());
+            RetrieveJournal r = new RetrieveJournal(as400, journalLibrary, config.getSchema());
             JournalPosition position = offsetCtx.getPosition();
             boolean success = r.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
@@ -58,9 +59,9 @@ public class As400RpcConnection implements AutoCloseable {
                 while (r.nextEntry()) {
                     // TODO try round inner loop?
                     try {
-                    	EntryHeader eheader = r.getEntryHeader();
+                        EntryHeader eheader = r.getEntryHeader();
                         Long currentOffset = eheader.getSequenceNumber();
- 
+
                         consumer.accept(currentOffset, r, eheader);
                         offsetCtx.setSequence(currentOffset + 1);
                     }
@@ -73,12 +74,14 @@ public class As400RpcConnection implements AutoCloseable {
                         }
                     }
                 }
-            } else {
-            	 JournalInfo journalNow = JournalInfoRetrieval.getReceiver(as400, config.getSchema(), journalLibrary);
+            }
+            else {
+                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(as400, config.getSchema(), journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
                 if (!journalNow.receiver.equals(lastOffset.getJournalReciever())) {
-                	log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset", journalNow.receiver, lastOffset.getJournal());
-                	offsetCtx.setJournalReciever(null, null);
+                    log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset",
+                            journalNow.receiver, lastOffset.getJournal());
+                    offsetCtx.setJournalReciever(null, null);
                 }
                 nodataConsumer.accept();
             }

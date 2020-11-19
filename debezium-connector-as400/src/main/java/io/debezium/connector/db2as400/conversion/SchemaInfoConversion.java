@@ -21,55 +21,56 @@ import io.debezium.relational.TableId;
  *
  */
 public class SchemaInfoConversion {
+
     public static TableInfo table2TableInfo(Table table) {
-		List<Structure> structures = table2Structure(table);		
-		AS400Structure as400Structure = table2As400Structure(table);		
-		List<String> primaryKeys = new ArrayList<>(table.primaryKeyColumnNames());
-		
-		return new TableInfo(structures, primaryKeys, as400Structure);
+        List<Structure> structures = table2Structure(table);
+        AS400Structure as400Structure = table2As400Structure(table);
+        List<String> primaryKeys = new ArrayList<>(table.primaryKeyColumnNames());
+
+        return new TableInfo(structures, primaryKeys, as400Structure);
     }
-    
+
     public static List<Structure> table2Structure(Table table) {
-		List<Structure> structures = new ArrayList<>();
-    	for (Column c: table.columns()) {
-    		Structure structure = new Structure(c.name(), c.typeName(), c.jdbcType(), c.length(), c.scale().orElse(0), c.isOptional(), c.position(), c.isAutoIncremented());
-    		structures.add(structure);
-    	}		
-		return structures;
+        List<Structure> structures = new ArrayList<>();
+        for (Column c : table.columns()) {
+            Structure structure = new Structure(c.name(), c.typeName(), c.jdbcType(), c.length(), c.scale().orElse(0), c.isOptional(), c.position(),
+                    c.isAutoIncremented());
+            structures.add(structure);
+        }
+        return structures;
     }
-    
+
     public static AS400Structure table2As400Structure(Table table) {
-		List<AS400DataType> as400structure = new ArrayList<>();
-    	for (Column c: table.columns()) {
-    		AS400DataType as400dt = JdbcFileDecoder.toDataType(c.name(), c.typeName(), c.length(), c.scale().orElse(0));
-    		as400structure.add(as400dt);
-    	}
-		
-		AS400Structure as400Structure = new AS400Structure(as400structure.toArray(new AS400DataType[as400structure.size()]));
-		return as400Structure;
+        List<AS400DataType> as400structure = new ArrayList<>();
+        for (Column c : table.columns()) {
+            AS400DataType as400dt = JdbcFileDecoder.toDataType(c.name(), c.typeName(), c.length(), c.scale().orElse(0));
+            as400structure.add(as400dt);
+        }
+
+        AS400Structure as400Structure = new AS400Structure(as400structure.toArray(new AS400DataType[as400structure.size()]));
+        return as400Structure;
     }
-    
-    
+
     public static Table tableInfo2Table(String database, String schema, String tableName, TableInfo tableInfo) {
-		TableEditor editor = Table.editor();
-		TableId id = new TableId(database, schema, tableName);
-		editor.tableId(id);
-		List<Structure> structure = tableInfo.getStructure();
-		for (Structure col: structure) {
-			ColumnEditor ceditor = Column.editor();
-			ceditor.jdbcType(col.getJdcbType());
-			ceditor.type(col.getType());
-			ceditor.length(col.getLength());
-			ceditor.scale(col.getPrecision());
-			ceditor.name(col.getName());
-			ceditor.autoIncremented(col.isAutoinc());
-			ceditor.optional(col.isOptional());
-			ceditor.position(col.getPosition());
-			
-			editor.addColumn(ceditor.create());
-		}
-		
-		editor.setPrimaryKeyNames(tableInfo.getPrimaryKeys());
-		return editor.create();
+        TableEditor editor = Table.editor();
+        TableId id = new TableId(database, schema, tableName);
+        editor.tableId(id);
+        List<Structure> structure = tableInfo.getStructure();
+        for (Structure col : structure) {
+            ColumnEditor ceditor = Column.editor();
+            ceditor.jdbcType(col.getJdcbType());
+            ceditor.type(col.getType());
+            ceditor.length(col.getLength());
+            ceditor.scale(col.getPrecision());
+            ceditor.name(col.getName());
+            ceditor.autoIncremented(col.isAutoinc());
+            ceditor.optional(col.isOptional());
+            ceditor.position(col.getPosition());
+
+            editor.addColumn(ceditor.create());
+        }
+
+        editor.setPrimaryKeyNames(tableInfo.getPrimaryKeys());
+        return editor.create();
     }
 }

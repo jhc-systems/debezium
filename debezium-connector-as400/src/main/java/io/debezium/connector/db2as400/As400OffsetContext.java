@@ -89,7 +89,7 @@ public class As400OffsetContext implements OffsetContext {
     @Override
     public Map<String, ?> getOffset() {
         if (sourceInfo.isSnapshot()) {
-        	log.debug("new snapshot offset {}", position);
+            log.debug("new snapshot offset {}", position);
             return Collect.hashMapOf(
                     As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
                     As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
@@ -160,7 +160,7 @@ public class As400OffsetContext implements OffsetContext {
     public void setJournalReciever(String journalReciever, String schema) {
         position.setJournalReciever(journalReciever, schema);
     }
-    
+
     public static class Loader implements OffsetContext.Loader {
 
         private final As400ConnectorConfig connectorConfig;

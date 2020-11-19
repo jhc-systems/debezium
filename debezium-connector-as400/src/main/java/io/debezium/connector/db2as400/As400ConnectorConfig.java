@@ -33,7 +33,7 @@ import io.debezium.relational.Tables.TableFilter;
 public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     private static TableIdToStringMapper tableToString = x -> x.schema() + "." + x.table();
     private final ColumnNameFilter columnFilter;
-    private final SnapshotMode snapshotMode;    
+    private final SnapshotMode snapshotMode;
     private final Configuration config;
 
     /**
@@ -70,7 +70,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     public SnapshotMode getSnapshotMode() {
         return snapshotMode;
     }
-    
+
     public String getHostName() {
         return config.getString(JdbcConfiguration.HOSTNAME);
     }
@@ -124,8 +124,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     public static Field.Set ALL_FIELDS = Field.setOf(
             JdbcConfiguration.HOSTNAME,
             USER, PASSWORD, SCHEMA,
-            RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE
-            );
+            RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE);
 
     public static ConfigDef configDef() {
         ConfigDef config = new ConfigDef();
@@ -139,7 +138,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
-                Heartbeat.HEARTBEAT_INTERVAL, 
+                Heartbeat.HEARTBEAT_INTERVAL,
                 Heartbeat.HEARTBEAT_TOPICS_PREFIX,
                 CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
                 CommonConnectorConfig.EVENT_PROCESSING_FAILURE_HANDLING_MODE,
@@ -150,7 +149,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
         return config;
     }
-    
+
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
             .withDisplayName("Snapshot mode")
             .withEnum(SnapshotMode.class, SnapshotMode.INITIAL)
@@ -160,7 +159,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
                     + "Options include: "
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
-    
+
     /**
      * The set of predefined SnapshotMode options or aliases.
      */
@@ -244,7 +243,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
             return mode;
         }
     }
-    
+
     /**
      * Returns any SELECT overrides, if present.
      */
@@ -265,5 +264,5 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         }
 
         return Collections.unmodifiableMap(snapshotSelectOverridesByTable);
-    }    
+    }
 }

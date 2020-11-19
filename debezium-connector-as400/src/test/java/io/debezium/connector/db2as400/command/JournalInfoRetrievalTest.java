@@ -15,15 +15,15 @@ import com.ibm.as400.access.AS400;
 
 public class JournalInfoRetrievalTest {
 
-	@Test
-	public void test() throws Exception {
-		AS400 as400 = new AS400("tracey", "msdev", "msdev");
-		
-		JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, "MSDEVT", "QSQJRN");
-		assertThat(position, is(notNullValue()));
-		assertThat(position.getJournalReciever(), not(emptyOrNullString()));
-		assertThat(position.getSchema(), not(emptyOrNullString()));
-		assertThat(position.getOffset(), is(greaterThanOrEqualTo(0L)));
-	}
+    @Test
+    public void test() throws Exception {
+        AS400 as400 = new AS400("tracey", "msdev", "msdev");
+
+        JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, "MSDEVT", "QSQJRN");
+        assertThat(position, is(notNullValue()));
+        assertThat(position.getJournalReciever(), not(emptyOrNullString()));
+        assertThat(position.getSchema(), not(emptyOrNullString()));
+        assertThat(position.getOffset(), is(greaterThanOrEqualTo(0L)));
+    }
 
 }
