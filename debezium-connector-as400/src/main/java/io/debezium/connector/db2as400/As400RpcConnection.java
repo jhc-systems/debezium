@@ -51,12 +51,14 @@ public class As400RpcConnection implements AutoCloseable {
     public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
         RpcException exception = null;
         try {
+            boolean foundData = false;
             RetrieveJournal r = new RetrieveJournal(as400, journalLibrary, config.getSchema());
             JournalPosition position = offsetCtx.getPosition();
             boolean success = r.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
             if (success) {
                 while (r.nextEntry()) {
+                    foundData = true;
                     // TODO try round inner loop?
                     try {
                         EntryHeader eheader = r.getEntryHeader();
@@ -83,8 +85,11 @@ public class As400RpcConnection implements AutoCloseable {
                             journalNow.receiver, lastOffset.getJournal());
                     offsetCtx.setJournalReciever(null, null);
                 }
-                nodataConsumer.accept();
             }
+
+            if (!foundData)
+                nodataConsumer.accept();
+
         }
         catch (Exception e) {
             throw new RpcException("Failed to process record", e);

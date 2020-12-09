@@ -42,7 +42,8 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
         this.rpcConnection = rpcConnection;
     }
 
-    public void addSchema(Table table) {
+    public void addSchema(Table originalTable) {
+        Table table = SchemaInfoConversion.fixColumnNames(originalTable);
         TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
         TableId id = table.id();
         map.put(id.catalog() + id.schema() + id.table(), tableInfo);

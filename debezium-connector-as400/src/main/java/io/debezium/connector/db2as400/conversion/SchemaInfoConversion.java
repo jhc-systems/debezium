@@ -51,6 +51,40 @@ public class SchemaInfoConversion {
         return as400Structure;
     }
 
+    public static Table fixColumnNames(Table table) {
+        TableEditor editor = Table.editor();
+        editor.tableId(table.id());
+        for (Column col : table.columns()) {
+            ColumnEditor ceditor = Column.editor();
+            ceditor.jdbcType(col.jdbcType());
+            ceditor.type(col.typeName());
+            ceditor.length(col.length());
+            col.scale().map(scale -> ceditor.scale(scale));
+            ceditor.name(sanitiseNames(col.name()));
+            ceditor.autoIncremented(col.isAutoIncremented());
+            ceditor.optional(col.isOptional());
+            ceditor.position(col.position());
+
+            editor.addColumn(ceditor.create());
+        }
+
+        editor.setPrimaryKeyNames(table.primaryKeyColumnNames());
+        return editor.create();
+
+    }
+
+    /**
+     * problematic characters for kafka that are allowed in DB2
+     * @param name
+     * @return
+     */
+    private static String sanitiseNames(String name) {
+        return name.replaceAll("@", "_a_")
+                .replaceAll("\\$", "_d_")
+                .replaceAll("#", "_h_")
+                .replaceAll(" ", "_s_");
+    }
+
     public static Table tableInfo2Table(String database, String schema, String tableName, TableInfo tableInfo) {
         TableEditor editor = Table.editor();
         TableId id = new TableId(database, schema, tableName);
@@ -62,7 +96,7 @@ public class SchemaInfoConversion {
             ceditor.type(col.getType());
             ceditor.length(col.getLength());
             ceditor.scale(col.getPrecision());
-            ceditor.name(col.getName());
+            ceditor.name(sanitiseNames(col.getName()));
             ceditor.autoIncremented(col.isAutoinc());
             ceditor.optional(col.isOptional());
             ceditor.position(col.getPosition());

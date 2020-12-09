@@ -37,34 +37,37 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     private final Configuration config;
 
     /**
-     * A field for the user to connect to the AS400. This field has no default value.
+     * A field for the user to connect to the AS400. This field has no default
+     * value.
      */
-    public static final Field USER = Field.create("user",
-            "Name of the user to be used when connecting to the as400");
+    public static final Field USER = Field.create("user", "Name of the user to be used when connecting to the as400");
     /**
-     * A field for the password to connect to the AS400. This field has no default value.
+     * A field for the password to connect to the AS400. This field has no default
+     * value.
      */
-    public static final Field PASSWORD = Field.create("password",
-            "Password to be used when connecting to the as400");
+    public static final Field PASSWORD = Field.create("password", "Password to be used when connecting to the as400");
 
     /**
-     * A field for the password to connect to the AS400. This field has no default value.
+     * A field for the password to connect to the AS400. This field has no default
+     * value.
      */
-    public static final Field SCHEMA = Field.create("schema",
-            "schema holding tables to capture");
+    public static final Field SCHEMA = Field.create("schema", "schema holding tables to capture");
 
     //
     // public As400ConnectorConfig(Configuration config) {
-    // super(As400RpcConnector.class, config, config.getString(SERVER_NAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table(), false);
+    // super(As400RpcConnector.class, config, config.getString(SERVER_NAME), new
+    // SystemTablesPredicate(), x -> x.schema() + "." + x.table(), false);
     //
     //// super(config, config.getString(SERVER_NAME),
     //// new SystemTablesPredicate(), tableToString, 10240);
 
     public As400ConnectorConfig(Configuration config) {
-        super(config, config.getString(JdbcConfiguration.HOSTNAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table(), 1);
+        super(config, config.getString(JdbcConfiguration.HOSTNAME), new SystemTablesPredicate(),
+                x -> x.schema() + "." + x.table(), 1);
         this.config = config;
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
-        this.columnFilter = Tables.ColumnNameFilterFactory.createExcludeListFilter(config.getString(RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST));
+        this.columnFilter = Tables.ColumnNameFilterFactory
+                .createExcludeListFilter(config.getString(RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST));
     }
 
     public SnapshotMode getSnapshotMode() {
@@ -121,42 +124,37 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         return columnFilter;
     }
 
-    public static Field.Set ALL_FIELDS = Field.setOf(
-            JdbcConfiguration.HOSTNAME,
-            USER, PASSWORD, SCHEMA,
+    public static Field.Set ALL_FIELDS = Field.setOf(JdbcConfiguration.HOSTNAME, USER, PASSWORD, SCHEMA,
             RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE);
 
     public static ConfigDef configDef() {
         ConfigDef config = new ConfigDef();
 
-        Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME,
-                USER, PASSWORD, SCHEMA);
+        Field.group(config, "As400 Server", JdbcConfiguration.HOSTNAME, USER, PASSWORD, SCHEMA);
 
-        Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD, As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.SCHEMA_FIELD);
+        Field.group(config, "As400 Position", As400OffsetContext.EVENT_SEQUENCE_FIELD,
+                As400OffsetContext.JOURNAL_RECEIVER_FIELD, As400OffsetContext.SCHEMA_FIELD);
 
         // TODO below borrowed form DB2
-        Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
+        Field.group(config, "Events",
+        		RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
-                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
+                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST, 
                 Heartbeat.HEARTBEAT_INTERVAL,
-                Heartbeat.HEARTBEAT_TOPICS_PREFIX,
-                CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
+                Heartbeat.HEARTBEAT_TOPICS_PREFIX, CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
                 CommonConnectorConfig.EVENT_PROCESSING_FAILURE_HANDLING_MODE,
                 RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE);
         Field.group(config, "Connector", CommonConnectorConfig.POLL_INTERVAL_MS, CommonConnectorConfig.MAX_BATCH_SIZE,
-                CommonConnectorConfig.MAX_QUEUE_SIZE, CommonConnectorConfig.SNAPSHOT_DELAY_MS, CommonConnectorConfig.SNAPSHOT_FETCH_SIZE,
-                RelationalDatabaseConnectorConfig.DECIMAL_HANDLING_MODE, RelationalDatabaseConnectorConfig.TIME_PRECISION_MODE);
+                CommonConnectorConfig.MAX_QUEUE_SIZE, CommonConnectorConfig.SNAPSHOT_DELAY_MS,
+                CommonConnectorConfig.SNAPSHOT_FETCH_SIZE, RelationalDatabaseConnectorConfig.DECIMAL_HANDLING_MODE,
+                RelationalDatabaseConnectorConfig.TIME_PRECISION_MODE);
 
         return config;
     }
 
-    public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
-            .withDisplayName("Snapshot mode")
-            .withEnum(SnapshotMode.class, SnapshotMode.INITIAL)
-            .withWidth(Width.SHORT)
-            .withImportance(Importance.LOW)
-            .withDescription("The criteria for running a snapshot upon startup of the connector. "
-                    + "Options include: "
+    public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode").withDisplayName("Snapshot mode")
+            .withEnum(SnapshotMode.class, SnapshotMode.INITIAL).withWidth(Width.SHORT).withImportance(Importance.LOW)
+            .withDescription("The criteria for running a snapshot upon startup of the connector. " + "Options include: "
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
@@ -176,15 +174,17 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         INITIAL("initial", true),
 
         /**
-         * Perform a snapshot of only the database schemas (without data) and then begin reading the binlog.
-         * This should be used with care, but it is very useful when the change event consumers need only the changes
-         * from the point in time the snapshot is made (and doesn't care about any state or changes prior to this point).
+         * Perform a snapshot of only the database schemas (without data) and then begin
+         * reading the binlog. This should be used with care, but it is very useful when
+         * the change event consumers need only the changes from the point in time the
+         * snapshot is made (and doesn't care about any state or changes prior to this
+         * point).
          */
         SCHEMA_ONLY("schema_only", false),
 
         /**
-         * Never perform a snapshot and only read the binlog. This assumes the binlog contains all the history of those
-         * databases and tables that will be captured.
+         * Never perform a snapshot and only read the binlog. This assumes the binlog
+         * contains all the history of those databases and tables that will be captured.
          */
         NEVER("never", false);
 
@@ -231,9 +231,10 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         /**
          * Determine if the supplied value is one of the predefined options.
          *
-         * @param value the configuration property value; may not be null
+         * @param value        the configuration property value; may not be null
          * @param defaultValue the default value; may be null
-         * @return the matching option, or null if no match is found and the non-null default is invalid
+         * @return the matching option, or null if no match is found and the non-null
+         *         default is invalid
          */
         public static SnapshotMode parse(String value, String defaultValue) {
             SnapshotMode mode = parse(value);
@@ -258,8 +259,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
         Map<TableId, String> snapshotSelectOverridesByTable = new HashMap<>();
 
         for (String table : tableList.split(",")) {
-            snapshotSelectOverridesByTable.put(
-                    TableId.parse(table, false),
+            snapshotSelectOverridesByTable.put(TableId.parse(table, false),
                     getConfig().getString(SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + "." + table));
         }
 

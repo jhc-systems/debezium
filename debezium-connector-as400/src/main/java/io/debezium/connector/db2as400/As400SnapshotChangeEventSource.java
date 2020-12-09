@@ -88,7 +88,7 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
             jdbcConnection.readSchema(
                     snapshotContext.tables,
-                    null,
+                    jdbcConnection.getRealDatabaseName(),
                     schema,
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,

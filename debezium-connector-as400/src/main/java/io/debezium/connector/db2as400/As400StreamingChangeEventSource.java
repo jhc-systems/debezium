@@ -210,6 +210,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                 new As400ChangeRecordEmitter(offsetContext, Operation.CREATE, null, dataNext, clock));
                     }
                         break;
+                    case "R.DR":
                     case "R.DL": {
                         // record deleted
                         Object[] dataBefore = r.decodeEntry(fileDecoder);
