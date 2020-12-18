@@ -5,7 +5,17 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,34 +25,46 @@ import com.ibm.as400.access.AS400JDBCDriver;
 import io.debezium.config.Configuration;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.Column;
+import io.debezium.relational.TableId;
+import io.debezium.relational.Tables;
+import io.debezium.relational.Tables.ColumnNameFilter;
+import io.debezium.relational.Tables.TableFilter;
 
 public class As400JdbcConnection extends JdbcConnection {
     private static final Logger log = LoggerFactory.getLogger(As400JdbcConnection.class);
-    private static final String URL_PATTERN = "jdbc:as400://${" + JdbcConfiguration.HOSTNAME + "}/${" + JdbcConfiguration.DATABASE + "}";
+    private static final String URL_PATTERN = "jdbc:as400://${" + JdbcConfiguration.HOSTNAME + "}/${"
+            + JdbcConfiguration.DATABASE + "}";
+    private final Configuration config;
 
     private static final String GET_DATABASE_NAME = "SELECT CURRENT_SERVER FROM SYSIBM.SYSDUMMY1";
+    private static final String GET_SYSTEM_TABLE_NAME = "select system_table_name from qsys2.systables where table_schema=? AND table_name=?";
+    private final Map<String, String> systemTableNames = new HashMap<>();
 
     private final String realDatabaseName;
 
-    // private static final String GET_LIST_OF_KEY_COLUMNS = "SELECT c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE, c.LENGTH, c.numeric_scale, c.numeric_precision,column_default"
+    // private static final String GET_LIST_OF_KEY_COLUMNS = "SELECT c.TABLE_NAME,
+    // c.COLUMN_NAME, c.DATA_TYPE, c.LENGTH, c.numeric_scale,
+    // c.numeric_precision,column_default"
     // + "FROM qsys2.SYSCOLUMNS c "
-    // + "WHERE ((c.system_TABLE_NAME='STOCK' AND c.system_TABLE_SCHEMA='F63HLDDBRD') OR (c.TABLE_NAME='STOCK' AND c.TABLE_SCHEMA='F63HLDDBRD')) "
+    // + "WHERE ((c.system_TABLE_NAME='STOCK' AND
+    // c.system_TABLE_SCHEMA='F63HLDDBRD') OR (c.TABLE_NAME='STOCK' AND
+    // c.TABLE_SCHEMA='F63HLDDBRD')) "
     // + "order by c.COLUMN_NAME";
 
     private static final ConnectionFactory FACTORY = JdbcConnection.patternBasedFactory(URL_PATTERN,
-            AS400JDBCDriver.class.getName(),
-            As400JdbcConnection.class.getClassLoader());
+            AS400JDBCDriver.class.getName(), As400JdbcConnection.class.getClassLoader());
 
     public As400JdbcConnection(Configuration config) {
         super(config, FACTORY);
+        this.config = config;
         realDatabaseName = retrieveRealDatabaseName();
         log.debug("connection:" + this.connectionString(URL_PATTERN));
     }
 
     public static As400JdbcConnection forTestDatabase(String databaseName) {
         return new As400JdbcConnection(JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                .withDatabase(databaseName)
-                .build());
+                .withDatabase(databaseName).build());
     }
 
     public String getRealDatabaseName() {
@@ -51,12 +73,129 @@ public class As400JdbcConnection extends JdbcConnection {
 
     private String retrieveRealDatabaseName() {
         try {
-            return queryAndMap(
-                    GET_DATABASE_NAME,
-                    singleResultMapper(rs -> rs.getString(1), "Could not retrieve database name"));
+            return queryAndMap(GET_DATABASE_NAME,
+                    singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
         }
         catch (SQLException e) {
             throw new RuntimeException("Couldn't obtain database name", e);
+        }
+    }
+
+    @Override
+    public void readSchema(Tables tables, String databaseCatalog, String schemaNamePattern, TableFilter tableFilter,
+                           ColumnNameFilter columnFilter, boolean removeTablesNotFoundInJdbc)
+            throws SQLException {
+        // Before we make any changes, get the copy of the set of table IDs ...
+        Set<TableId> tableIdsBefore = new HashSet<>(tables.tableIds());
+
+        // Read the metadata for the table columns ...
+        DatabaseMetaData metadata = connection().getMetaData();
+
+        // Find regular and materialized views as they cannot be snapshotted
+        final Set<TableId> viewIds = new HashSet<>();
+        final Set<TableId> tableIds = new HashSet<>();
+
+        int totalTables = 0;
+        try (final ResultSet rs = metadata.getTables(databaseCatalog, schemaNamePattern, null,
+                new String[]{ "VIEW", "MATERIALIZED VIEW", "TABLE" })) {
+            while (rs.next()) {
+                final String catalogName = rs.getString(1);
+                final String schemaName = rs.getString(2);
+                final String tableName = rs.getString(3);
+                final String tableType = rs.getString(4);
+                if ("TABLE".equals(tableType)) {
+                    totalTables++;
+                    final String systemTableName = getSystemName(schemaName, tableName);
+                    TableId tableId = new TableId(catalogName, schemaName, systemTableName);
+                    if (tableFilter == null || tableFilter.isIncluded(tableId)) {
+                        tableIds.add(tableId);
+                    }
+                }
+                else {
+                    TableId tableId = new TableId(catalogName, schemaName, tableName);
+                    viewIds.add(tableId);
+                }
+            }
+        }
+
+        Map<TableId, List<Column>> columnsByTable = new HashMap<>();
+
+        if (totalTables == tableIds.size()) {
+            columnsByTable = getColumnsDetails(databaseCatalog, schemaNamePattern, null, tableFilter, columnFilter,
+                    metadata, viewIds);
+        }
+        else {
+            for (TableId includeTable : tableIds) {
+                Map<TableId, List<Column>> cols = getColumnsDetails(databaseCatalog, schemaNamePattern,
+                        includeTable.table(), tableFilter, columnFilter, metadata, viewIds);
+                columnsByTable.putAll(cols);
+            }
+        }
+
+        // Read the metadata for the primary keys ...
+        for (Entry<TableId, List<Column>> tableEntry : columnsByTable.entrySet()) {
+            // First get the primary key information, which must be done for *each* table
+            // ...
+            List<String> pkColumnNames = readPrimaryKeyOrUniqueIndexNames(metadata, tableEntry.getKey());
+
+            // Then define the table ...
+            List<Column> columns = tableEntry.getValue();
+            Collections.sort(columns);
+            String defaultCharsetName = null; // JDBC does not expose character sets
+            tables.overwriteTable(tableEntry.getKey(), columns, pkColumnNames, defaultCharsetName);
+        }
+
+        if (removeTablesNotFoundInJdbc) {
+            // Remove any definitions for tables that were not found in the database
+            // metadata ...
+            tableIdsBefore.removeAll(columnsByTable.keySet());
+            tableIdsBefore.forEach(tables::removeTable);
+        }
+    }
+
+    private Map<TableId, List<Column>> getColumnsDetails(String databaseCatalog, String schemaNamePattern,
+                                                         String tableName, TableFilter tableFilter, ColumnNameFilter columnFilter, DatabaseMetaData metadata,
+                                                         final Set<TableId> viewIds)
+            throws SQLException {
+        Map<TableId, List<Column>> columnsByTable = new HashMap<>();
+        try (ResultSet columnMetadata = metadata.getColumns(databaseCatalog, schemaNamePattern, tableName, null)) {
+            while (columnMetadata.next()) {
+                String catalogName = columnMetadata.getString(1);
+                String schemaName = columnMetadata.getString(2);
+                String metaTableName = columnMetadata.getString(3);
+                final String systemTableName = getSystemName(schemaName, metaTableName);
+                TableId tableId = new TableId(catalogName, schemaName, systemTableName);
+
+                // exclude views and non-captured tables
+                if (viewIds.contains(tableId) || (tableFilter != null && !tableFilter.isIncluded(tableId))) {
+                    continue;
+                }
+
+                // add all included columns
+                readTableColumn(columnMetadata, tableId, columnFilter).ifPresent(column -> {
+                    columnsByTable.computeIfAbsent(tableId, t -> new ArrayList<>()).add(column.create());
+                });
+            }
+        }
+        return columnsByTable;
+    }
+
+    public String getSystemName(String schemaName, String tableName) throws SQLException {
+        String combined = String.format("%s.%s", schemaName, tableName);
+        if (systemTableNames.containsKey(combined)) {
+            return systemTableNames.get(combined);
+        }
+        else {
+            String systemName = prepareQueryAndMap(GET_SYSTEM_TABLE_NAME,
+                    call -> {
+                        call.setString(1, schemaName);
+                        call.setString(2, tableName);
+                    },
+                    singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
+            if (systemName == null)
+                systemName = tableName;
+            systemTableNames.put(combined, systemName);
+            return systemName;
         }
     }
 }

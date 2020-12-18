@@ -137,9 +137,9 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
         // TODO below borrowed form DB2
         Field.group(config, "Events",
-        		RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
+                RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
-                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST, 
+                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
                 Heartbeat.HEARTBEAT_INTERVAL,
                 Heartbeat.HEARTBEAT_TOPICS_PREFIX, CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION,
                 CommonConnectorConfig.EVENT_PROCESSING_FAILURE_HANDLING_MODE,

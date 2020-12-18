@@ -21,9 +21,9 @@
     </encoder>
   </appender>
   
-  <logger name="org.apache.kafka.connect.runtime.WorkerSourceTask" level="trace"/>
-    <logger name="io.debezium.pipeline.EventDispatcher" level="trace"/>
-    <logger name="io.debezium.connector.db2as400.As400StreamingChangeEventSource" level="trace"/>
+  <logger name="org.apache.kafka.connect.runtime.WorkerSourceTask" level="info"/>
+    <logger name="io.debezium.pipeline.EventDispatcher" level="info"/>
+    <logger name="io.debezium.connector.db2as400.As400StreamingChangeEventSource" level="info"/>
     
   
 

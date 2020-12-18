@@ -6,6 +6,7 @@
 package io.debezium.connector.db2as400;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +25,11 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
 
     private static final Logger log = LoggerFactory.getLogger(As400DatabaseSchema.class);
     private final As400ConnectorConfig config;
-    private final HashMap<String, TableInfo> map = new HashMap<>();
+    private final Map<String, TableInfo> map = new HashMap<>();
     private final As400RpcConnection rpcConnection;
+    private final As400JdbcConnection jdbcConnection;
 
-    public As400DatabaseSchema(As400ConnectorConfig config, As400RpcConnection rpcConnection,
+    public As400DatabaseSchema(As400ConnectorConfig config, As400JdbcConnection jdbcConnection, As400RpcConnection rpcConnection,
                                TopicSelector<TableId> topicSelector,
                                SchemaNameAdjuster schemaNameAdjuster) {
         super(config, topicSelector, config.getTableFilters().dataCollectionFilter(),
@@ -40,10 +42,10 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
                 false, config.getKeyMapper());
         this.config = config;
         this.rpcConnection = rpcConnection;
+        this.jdbcConnection = jdbcConnection;
     }
 
-    public void addSchema(Table originalTable) {
-        Table table = SchemaInfoConversion.fixColumnNames(originalTable);
+    public void addSchema(Table table) {
         TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
         TableId id = table.id();
         map.put(id.catalog() + id.schema() + id.table(), tableInfo);

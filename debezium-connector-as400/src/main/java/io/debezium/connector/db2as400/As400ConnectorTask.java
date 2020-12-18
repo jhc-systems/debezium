@@ -74,7 +74,7 @@ public class As400ConnectorTask extends BaseSourceTask {
 
         TopicSelector<TableId> topicSelector = defaultTopicSelector(connectorConfig);
 
-        this.schema = new As400DatabaseSchema(connectorConfig, rpcConnection, topicSelector,
+        this.schema = new As400DatabaseSchema(connectorConfig, jdbcConnection, rpcConnection, topicSelector,
                 schemaNameAdjuster);
 
         As400EventMetadataProvider metadataProvider = new As400EventMetadataProvider();
