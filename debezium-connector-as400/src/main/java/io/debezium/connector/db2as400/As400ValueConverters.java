@@ -26,11 +26,15 @@ public class As400ValueConverters extends JdbcValueConverters {
 
     @Override
     protected Object convertString(Column column, Field fieldDefn, Object data) {
+        if (data == null)
+            return super.convertString(column, fieldDefn, data);
         if (!(data instanceof SQLXML)) {
             String str = data.toString();
             Pair fixed = removeBadCharacters(str);
             if (fixed.modified) {
-                log.error("removed binary data from column {} field {} data {}", column.name(), str);
+                String cname = (column == null) ? "" : String.format(" column name %s", column.name());
+                String fname = (fieldDefn == null) ? "" : String.format(" fieldDefn name %s", fieldDefn.name());
+                log.error("removed binary data{}{} data {}", cname, fname, str);
             }
             return super.convertString(column, fieldDefn, fixed.value.trim());
         }

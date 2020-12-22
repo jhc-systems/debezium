@@ -124,6 +124,13 @@
 			<artifactId>kafka-connect-avro-converter</artifactId>
 			<scope>provided</scope>
 		</dependency>
+				
+		<dependency>
+		  <groupId>io.prometheus.jmx</groupId>
+		  <artifactId>jmx_prometheus_javaagent</artifactId>
+		  <version>0.12.0</version>
+			<scope>provided</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>io.confluent</groupId>
@@ -181,6 +188,7 @@
 			<scope>test</scope>
 			<version>3.5.13</version>
 		</dependency>
+
 	</dependencies>
 
 	<build>

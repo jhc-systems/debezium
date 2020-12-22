@@ -12,4 +12,4 @@ sed -e "s#SCHEMA_URL#$SCHEMA_URL#" -e "s/GROUP_ID/$GROUP_ID/" \
 cat connect-distributed.properties
 
 jars=$(echo *jar|tr ' ' ':')
-java -cp $jars -Dlogback.configurationFile=logback.xml org.apache.kafka.connect.cli.ConnectDistributed connect-distributed.properties
+java -cp $jars -javaagent:/app/jmx_prometheus_javaagent-0.12.0.jar=7071:/app/debezium-jmx-pometheus.yml -Dlogback.configurationFile=logback.xml org.apache.kafka.connect.cli.ConnectDistributed connect-distributed.properties

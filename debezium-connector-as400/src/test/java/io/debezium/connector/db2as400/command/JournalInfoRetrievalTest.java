@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 import org.junit.Test;
 
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval;
+import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalLib;
 import com.fnz.db2.journal.retrieve.JournalPosition;
 import com.ibm.as400.access.AS400;
 
@@ -19,7 +20,7 @@ public class JournalInfoRetrievalTest {
     public void test() throws Exception {
         AS400 as400 = new AS400("tracey", "msdev", "msdev");
 
-        JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, "MSDEVT", "QSQJRN");
+        JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, new JournalLib("QSQJRN", "MSDEVT"));
         assertThat(position, is(notNullValue()));
         assertThat(position.getJournalReciever(), not(emptyOrNullString()));
         assertThat(position.getSchema(), not(emptyOrNullString()));

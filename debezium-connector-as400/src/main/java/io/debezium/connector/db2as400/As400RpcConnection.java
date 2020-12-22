@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalInfo;
+import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalLib;
 import com.fnz.db2.journal.retrieve.JournalPosition;
 import com.fnz.db2.journal.retrieve.RetrieveJournal;
 import com.fnz.db2.journal.retrieve.rjne0200.EntryHeader;
@@ -19,7 +20,7 @@ public class As400RpcConnection implements AutoCloseable {
     private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
     private As400ConnectorConfig config;
-    private final String journalLibrary;
+    private final JournalLib journalLibrary;
     private final AS400 as400;
 
     public As400RpcConnection(As400ConnectorConfig config) {
@@ -40,7 +41,7 @@ public class As400RpcConnection implements AutoCloseable {
 
     public JournalPosition getCurrentPosition() throws RpcException {
         try {
-            return JournalInfoRetrieval.getCurrentPosition(as400, config.getSchema(), journalLibrary);
+            return JournalInfoRetrieval.getCurrentPosition(as400, journalLibrary);
             // return new JournalPosition(null, null, null);
         }
         catch (Exception e) {
@@ -78,7 +79,7 @@ public class As400RpcConnection implements AutoCloseable {
                 }
             }
             else {
-                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(as400, config.getSchema(), journalLibrary);
+                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(as400, journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
                 if (!journalNow.receiver.equals(lastOffset.getJournalReciever())) {
                     log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset",

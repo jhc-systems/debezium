@@ -169,7 +169,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                     case "R.UB": {
                         // before image
                         tableId.schema();
-                        Object[] dataBefore = r.decodeEntry(fileDecoder);
+                        Object[] dataBefore = r.decode(fileDecoder);
 
                         cacheBefore(tableId, eheader.getTimestamp(), dataBefore);
                     }
@@ -178,7 +178,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                         // after image
                         // before image is meant to have been immediately before
                         Object[] dataBefore = getBefore(tableId, eheader.getTimestamp());
-                        Object[] dataNext = r.decodeEntry(fileDecoder);
+                        Object[] dataNext = r.decode(fileDecoder);
 
                         offsetContext.setSourceTime(eheader.getTimestamp());
 
@@ -195,7 +195,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                     case "R.PX":
                     case "R.PT": {
                         // record added
-                        Object[] dataNext = r.decodeEntry(fileDecoder);
+                        Object[] dataNext = r.decode(fileDecoder);
                         offsetContext.setSourceTime(eheader.getTimestamp());
 
                         String txId = eheader.getCommitCycle().toString();
@@ -213,7 +213,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                     case "R.DR":
                     case "R.DL": {
                         // record deleted
-                        Object[] dataBefore = r.decodeEntry(fileDecoder);
+                        Object[] dataBefore = r.decode(fileDecoder);
 
                         offsetContext.setSourceTime(eheader.getTimestamp());
 
@@ -230,7 +230,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                     }
                         break;
                     case "J.NR": {
-                        JournalReciever startReciever = r.decodeEntry(new JournalRecordDecoder());
+                        JournalReciever startReciever = r.decode(new JournalRecordDecoder());
                         offsetContext.setJournalReciever(startReciever.getReciever(), startReciever.getLibrary());
                     }
                         break;
