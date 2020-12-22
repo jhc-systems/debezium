@@ -184,4 +184,9 @@ public class As400OffsetContext implements OffsetContext {
         }
     }
 
+    @Override
+    public String toString() {
+        return "As400OffsetContext [position=" + position + "]";
+    }
+
 }
