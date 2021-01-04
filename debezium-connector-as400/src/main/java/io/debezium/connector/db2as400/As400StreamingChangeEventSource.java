@@ -115,15 +115,22 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
         // Integer offset = offsetContext.getSequence();
         while (context.isRunning()) {
-            try {
-                dataConnection.getJournalEntries(offsetContext, processJournalEntries(), () -> {
-                    log.debug("sleep");
-                    metronome.pause();
-                });
+            Exception ex = null;
+            for (int i = 0; i < 5 && context.isRunning(); i++) { // allow retries
+                try {
+                    dataConnection.getJournalEntries(offsetContext, processJournalEntries(), () -> {
+                        log.debug("sleep");
+                        metronome.pause();
+                    });
+                    break;
+                }
+                catch (Exception e) {
+                    ex = e;
+                }
             }
-            catch (Exception e) {
-                log.error("failed to process offset {}", offsetContext.getPosition().toString(), e);
-                errorHandler.setProducerThrowable(e);
+            if (ex != null) {
+                log.error("failed to process offset {}", offsetContext.getPosition().toString(), ex);
+                errorHandler.setProducerThrowable(ex);
             }
         }
     }

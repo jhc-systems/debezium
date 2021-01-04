@@ -35,17 +35,18 @@ public class As400RpcConnection implements AutoCloseable {
     }
 
     public AS400 getConnection() {
-		if (as400 == null || !as400.isConnectionAlive()) {
-			log.debug("create new as400 connection");
-			try {
-				// need to both create a new object and connect
-				this.as400 = new AS400(config.getHostName(), config.getUser(), config.getPassword());
-				as400.connectService(AS400.COMMAND);
-			} catch (Exception e) {
-				log.error("Failed to reconnect", e);
-			}
-		}
-		return as400;
+        if (as400 == null || !as400.isConnectionAlive()) {
+            log.debug("create new as400 connection");
+            try {
+                // need to both create a new object and connect
+                this.as400 = new AS400(config.getHostName(), config.getUser(), config.getPassword());
+                as400.connectService(AS400.COMMAND);
+            }
+            catch (Exception e) {
+                log.error("Failed to reconnect", e);
+            }
+        }
+        return as400;
     }
 
     public JournalPosition getCurrentPosition() throws RpcException {
