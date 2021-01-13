@@ -39,6 +39,9 @@ public class As400JdbcConnection extends JdbcConnection {
 
     private static final String GET_DATABASE_NAME = "SELECT CURRENT_SERVER FROM SYSIBM.SYSDUMMY1";
     private static final String GET_SYSTEM_TABLE_NAME = "select system_table_name from qsys2.systables where table_schema=? AND table_name=?";
+    private static final String GET_INDEXES = "SELECT c.column_name FROM qsys.QADBKATR k "
+            + "INNER JOIN qsys2.SYSCOLUMNS c on c.table_schema=k.dbklib and c.system_table_name=k.dbkfil AND c.system_column_name=k.DBKFLD "
+            + "WHERE k.dbklib=? AND k.dbkfil=? ORDER BY k.DBKPOS ASC ";
     private final Map<String, String> systemTableNames = new HashMap<>();
 
     private final String realDatabaseName;
@@ -151,6 +154,31 @@ public class As400JdbcConnection extends JdbcConnection {
             tableIdsBefore.removeAll(columnsByTable.keySet());
             tableIdsBefore.forEach(tables::removeTable);
         }
+    }
+
+    protected List<String> readPrimaryKeyOrUniqueIndexNames(DatabaseMetaData metadata, TableId id) throws SQLException {
+        List<String> pkColumnNames = readPrimaryKeyNames(metadata, id);
+        if (pkColumnNames.isEmpty())
+            pkColumnNames = readAs400PrimaryKeys(id);
+        if (pkColumnNames.isEmpty())
+            pkColumnNames = readTableUniqueIndices(metadata, id);
+        return pkColumnNames;
+    }
+
+    protected List<String> readAs400PrimaryKeys(TableId id) throws SQLException {
+        List<String> columns = prepareQueryAndMap(GET_INDEXES,
+                call -> {
+                    call.setString(1, id.schema());
+                    call.setString(2, id.table());
+                },
+                rs -> {
+                    final List<String> indexColumns = new ArrayList<>();
+                    while (rs.next()) {
+                        indexColumns.add(rs.getString(1).trim());
+                    }
+                    return indexColumns;
+                });
+        return columns;
     }
 
     private Map<TableId, List<Column>> getColumnsDetails(String databaseCatalog, String schemaNamePattern,
