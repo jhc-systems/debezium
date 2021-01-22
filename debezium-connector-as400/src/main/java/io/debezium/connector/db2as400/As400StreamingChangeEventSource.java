@@ -49,7 +49,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
 
     private static final Logger LOGGER = LoggerFactory.getLogger(As400StreamingChangeEventSource.class);
     private HashMap<String, Object[]> beforeMap = new HashMap<>();
-    private static Set<String> alwaysProcess = Stream.of("J", "C")
+    private static Set<Character> alwaysProcess = Stream.of('J', 'C')
             .collect(Collectors.toCollection(HashSet::new));
 
     /**
@@ -138,12 +138,13 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     private BlockingRecieverConsumer processJournalEntries() {
         return (nextOffset, r, eheader) -> {
             try {
-                TableId tableId = new TableId(database, eheader.getLibrary(), eheader.getFile()); // TODO!
+                String longName = jdbcConnection.getLongName(eheader.getLibrary(), eheader.getFile());
+                TableId tableId = new TableId(database, eheader.getLibrary(), longName);
 
                 boolean includeTable = connectorConfig.getTableFilters().dataCollectionFilter().isIncluded(tableId);
 
                 if (!alwaysProcess.contains(eheader.getJournalCode()) && !includeTable) { // always process journal J and transaction C messages
-                    // log.debug("table {} excluded skipping", tableId);
+                    log.debug("excluding table {} journal code {}", tableId, eheader.getJournalCode());
                     return;
                 }
 

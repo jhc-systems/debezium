@@ -25,6 +25,7 @@
     <logger name="io.debezium.pipeline.EventDispatcher" level="info"/>
     <logger name="io.debezium.connector.db2as400.As400StreamingChangeEventSource" level="info"/>
     
+    <logger name="io.debezium.connector.db2as400" level="info"/>
   
 
   <root level="info">

@@ -70,13 +70,12 @@ public class As400RpcConnection implements AutoCloseable {
             if (success) {
                 while (r.nextEntry()) {
                     foundData = true;
-                    // TODO try round inner loop?
                     try {
                         EntryHeader eheader = r.getEntryHeader();
-                        Long currentOffset = eheader.getSequenceNumber();
+                        Long currentOffset = eheader.getSequenceNumber() + 1;
 
                         consumer.accept(currentOffset, r, eheader);
-                        offsetCtx.setSequence(currentOffset + 1);
+                        offsetCtx.setSequence(currentOffset);
                     }
                     catch (Exception e) {
                         if (exception == null) {

@@ -39,10 +39,12 @@ public class As400JdbcConnection extends JdbcConnection {
 
     private static final String GET_DATABASE_NAME = "SELECT CURRENT_SERVER FROM SYSIBM.SYSDUMMY1";
     private static final String GET_SYSTEM_TABLE_NAME = "select system_table_name from qsys2.systables where table_schema=? AND table_name=?";
+    private static final String GET_TABLE_NAME = "select table_name from qsys2.systables where table_schema=? AND system_table_name=?";
     private static final String GET_INDEXES = "SELECT c.column_name FROM qsys.QADBKATR k "
             + "INNER JOIN qsys2.SYSCOLUMNS c on c.table_schema=k.dbklib and c.system_table_name=k.dbkfil AND c.system_column_name=k.DBKFLD "
             + "WHERE k.dbklib=? AND k.dbkfil=? ORDER BY k.DBKPOS ASC ";
-    private final Map<String, String> systemTableNames = new HashMap<>();
+    private final Map<String, String> systemToLongName = new HashMap<>();
+    private final Map<String, String> longToSystemName = new HashMap<>();
 
     private final String realDatabaseName;
 
@@ -108,8 +110,7 @@ public class As400JdbcConnection extends JdbcConnection {
                 final String tableType = rs.getString(4);
                 if ("TABLE".equals(tableType)) {
                     totalTables++;
-                    final String systemTableName = getSystemName(schemaName, tableName);
-                    TableId tableId = new TableId(catalogName, schemaName, systemTableName);
+                    TableId tableId = new TableId(catalogName, schemaName, tableName);
                     if (tableFilter == null || tableFilter.isIncluded(tableId)) {
                         tableIds.add(tableId);
                     }
@@ -191,8 +192,7 @@ public class As400JdbcConnection extends JdbcConnection {
                 String catalogName = columnMetadata.getString(1);
                 String schemaName = columnMetadata.getString(2);
                 String metaTableName = columnMetadata.getString(3);
-                final String systemTableName = getSystemName(schemaName, metaTableName);
-                TableId tableId = new TableId(catalogName, schemaName, systemTableName);
+                TableId tableId = new TableId(catalogName, schemaName, metaTableName);
 
                 // exclude views and non-captured tables
                 if (viewIds.contains(tableId) || (tableFilter != null && !tableFilter.isIncluded(tableId))) {
@@ -208,22 +208,59 @@ public class As400JdbcConnection extends JdbcConnection {
         return columnsByTable;
     }
 
-    public String getSystemName(String schemaName, String tableName) throws SQLException {
-        String combined = String.format("%s.%s", schemaName, tableName);
-        if (systemTableNames.containsKey(combined)) {
-            return systemTableNames.get(combined);
+    public String getSystemName(String schemaName, String longTableName) throws SQLException {
+        String longKey = String.format("%s.%s", schemaName, longTableName);
+        if (longToSystemName.containsKey(longKey)) {
+            return longToSystemName.get(longKey);
         }
         else {
             String systemName = prepareQueryAndMap(GET_SYSTEM_TABLE_NAME,
                     call -> {
                         call.setString(1, schemaName);
-                        call.setString(2, tableName);
+                        call.setString(2, longTableName);
                     },
                     singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
             if (systemName == null)
-                systemName = tableName;
-            systemTableNames.put(combined, systemName);
+                systemName = longTableName;
+            String systemKey = String.format("%s.%s", schemaName, systemName);
+            longToSystemName.put(longKey, systemName);
+            systemToLongName.put(systemKey, longTableName);
             return systemName;
+        }
+    }
+
+    public String getLongName(String schemaName, String systemName) {
+        String systemKey = String.format("%s.%s", schemaName, systemName);
+        if (schemaName.isEmpty() || systemName.isEmpty())
+            return "";
+        if (systemToLongName.containsKey(systemKey)) {
+            return systemToLongName.get(systemKey);
+        }
+        else {
+            try {
+                String longTableName = prepareQueryAndMap(GET_TABLE_NAME,
+                        call -> {
+                            call.setString(1, schemaName);
+                            call.setString(2, systemName);
+                        },
+                        singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
+                if (longTableName == null)
+                    longTableName = systemName;
+                String longKey = String.format("%s.%s", schemaName, longTableName);
+                longToSystemName.put(longKey, systemName);
+                systemToLongName.put(systemKey, longTableName);
+                return longTableName;
+            }
+            catch (SQLException e) {
+                systemToLongName.put(systemKey, systemName);
+                log.debug("unable to lookup system name {} {}", schemaName, systemName, e);
+                return systemName;
+            }
+            catch (IllegalStateException e) {
+                systemToLongName.put(systemKey, systemName);
+                log.debug("unable to lookup system name {} {}", schemaName, systemName, e);
+                return systemName;
+            }
         }
     }
 }

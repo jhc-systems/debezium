@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,6 +49,15 @@ public class As400DatabaseSchema extends RelationalDatabaseSchema implements Sch
     public void addSchema(Table table) {
         TableInfo tableInfo = SchemaInfoConversion.table2TableInfo(table);
         TableId id = table.id();
+        try {
+            // duplicate the information to the short name
+            final String systemTableName = jdbcConnection.getSystemName(id.schema(), id.table());
+            map.put(id.catalog() + id.schema() + systemTableName, tableInfo);
+        }
+        catch (SQLException e) {
+            log.error("failed looking up system name", e);
+        }
+
         map.put(id.catalog() + id.schema() + id.table(), tableInfo);
         this.buildAndRegisterSchema(table);
     }
