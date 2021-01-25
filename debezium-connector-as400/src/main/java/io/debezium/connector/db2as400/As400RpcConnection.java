@@ -5,9 +5,12 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fnz.db2.journal.retrieve.Connect;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalInfo;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalLib;
@@ -16,17 +19,22 @@ import com.fnz.db2.journal.retrieve.RetrieveJournal;
 import com.fnz.db2.journal.retrieve.rjne0200.EntryHeader;
 import com.ibm.as400.access.AS400;
 
-public class As400RpcConnection implements AutoCloseable {
+public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOException> {
     private static Logger log = LoggerFactory.getLogger(As400RpcConnection.class);
 
     private As400ConnectorConfig config;
-    private final JournalLib journalLibrary;
+    private JournalLib journalLibrary;
     private AS400 as400;
 
     public As400RpcConnection(As400ConnectorConfig config) {
         super();
         this.config = config;
-        journalLibrary = JournalInfoRetrieval.getJournal(getConnection(), config.getSchema());
+        try {
+            journalLibrary = JournalInfoRetrieval.getJournal(connection(), config.getSchema());
+        }
+        catch (IOException e) {
+            log.error("Failed to fetch library", e);
+        }
     }
 
     @Override
@@ -34,7 +42,7 @@ public class As400RpcConnection implements AutoCloseable {
         this.as400.disconnectAllServices();
     }
 
-    public AS400 getConnection() {
+    public AS400 connection() throws IOException {
         if (as400 == null || !as400.isConnectionAlive()) {
             log.debug("create new as400 connection");
             try {
@@ -44,6 +52,7 @@ public class As400RpcConnection implements AutoCloseable {
             }
             catch (Exception e) {
                 log.error("Failed to reconnect", e);
+                throw new IOException("Failed to reconnect", e);
             }
         }
         return as400;
@@ -51,7 +60,7 @@ public class As400RpcConnection implements AutoCloseable {
 
     public JournalPosition getCurrentPosition() throws RpcException {
         try {
-            return JournalInfoRetrieval.getCurrentPosition(getConnection(), journalLibrary);
+            return JournalInfoRetrieval.getCurrentPosition(connection(), journalLibrary);
             // return new JournalPosition(null, null, null);
         }
         catch (Exception e) {
@@ -63,7 +72,7 @@ public class As400RpcConnection implements AutoCloseable {
         RpcException exception = null;
         try {
             boolean foundData = false;
-            RetrieveJournal r = new RetrieveJournal(getConnection(), journalLibrary, config.getSchema());
+            RetrieveJournal r = new RetrieveJournal(connection(), journalLibrary, config.getSchema());
             JournalPosition position = offsetCtx.getPosition();
             boolean success = r.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
@@ -88,7 +97,7 @@ public class As400RpcConnection implements AutoCloseable {
                 }
             }
             else {
-                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(getConnection(), journalLibrary);
+                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(connection(), journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
                 if (!journalNow.receiver.equals(lastOffset.getJournalReciever())) {
                     log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset",

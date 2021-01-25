@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +21,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fnz.db2.journal.retrieve.Connect;
 import com.ibm.as400.access.AS400JDBCDriver;
 
 import io.debezium.config.Configuration;
@@ -31,7 +33,7 @@ import io.debezium.relational.Tables;
 import io.debezium.relational.Tables.ColumnNameFilter;
 import io.debezium.relational.Tables.TableFilter;
 
-public class As400JdbcConnection extends JdbcConnection {
+public class As400JdbcConnection extends JdbcConnection implements Connect<Connection, SQLException> {
     private static final Logger log = LoggerFactory.getLogger(As400JdbcConnection.class);
     private static final String URL_PATTERN = "jdbc:as400://${" + JdbcConfiguration.HOSTNAME + "}/${"
             + JdbcConfiguration.DATABASE + "}";

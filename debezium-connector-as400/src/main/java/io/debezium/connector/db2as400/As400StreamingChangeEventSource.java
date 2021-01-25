@@ -5,7 +5,6 @@
  */
 package io.debezium.connector.db2as400;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
@@ -85,12 +84,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         this.offsetContext = offsetContext;
         this.pollInterval = connectorConfig.getPollInterval();
         this.database = jdbcConnection.getRealDatabaseName();
-        try {
-            this.fileDecoder = new JdbcFileDecoder(jdbcConnection.connection(), dataConnection.getConnection(), connectorConfig.getSchema(), (SchemaCacheIF) schema);
-        }
-        catch (SQLException e) {
-            log.error("failed to create connection", e);
-        }
+        this.fileDecoder = new JdbcFileDecoder(jdbcConnection, dataConnection, connectorConfig.getSchema(), (SchemaCacheIF) schema);
     }
 
     private void cacheBefore(TableId tableId, Timestamp date, Object[] dataBefore) {
