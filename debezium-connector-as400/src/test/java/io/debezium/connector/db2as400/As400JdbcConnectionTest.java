@@ -55,4 +55,9 @@ public class As400JdbcConnectionTest {
         System.out.println(tables);
         assertThat(tables.size(), equalTo(1));
     }
+    
+    // todo test getJournalEntries with the 3 scenarios 
+    // 1 no entries and no continuation
+    // 2 previous= false; one entry and continuation
+    // 3 previous = false, one entry and nocontinuation
 }

@@ -62,10 +62,8 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
     @Override
     protected void determineSnapshotOffset(RelationalSnapshotContext snapshotContext) throws Exception {
         JournalPosition position = rpcConnection.getCurrentPosition();
-        // move on past last entry so we don't process it again
-        if (position.isOffsetSet()) {
-            position.setOffset(position.getOffset() + 1);
-        }
+        // set last entry to processed so we don't process it again
+        position.setProcessed(true);
         snapshotContext.offset = new As400OffsetContext(connectorConfig, position);
     }
 

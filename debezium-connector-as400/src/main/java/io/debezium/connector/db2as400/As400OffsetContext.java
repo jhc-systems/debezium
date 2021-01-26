@@ -30,11 +30,13 @@ public class As400OffsetContext implements OffsetContext {
     private static final String SERVER_PARTITION_KEY = "server";
     public static final String EVENT_SEQUENCE = "offset.event_sequence";
     public static final String SCHEMA = "offset.schema";
+    public static final String PROCESSED = "offset.processed";
     public static final String JOURNAL_RECEIVER = "offset.journal_receiver";
 
     public static final Field EVENT_SEQUENCE_FIELD = Field.create(EVENT_SEQUENCE);
     public static final Field SCHEMA_FIELD = Field.create(SCHEMA);
     public static final Field JOURNAL_RECEIVER_FIELD = Field.create(JOURNAL_RECEIVER);
+    public static final Field PROCESSED_FIELD = Field.create(PROCESSED);
 
     private final Map<String, String> partition;
     private TransactionContext transactionContext;
@@ -60,12 +62,12 @@ public class As400OffsetContext implements OffsetContext {
         sourceInfo = new SourceInfo(connectorConfig);
     }
 
-    public void setSequence(Long sequence) {
+    public void setSequence(Long sequence, boolean processed) {
         if (position.getOffset() > sequence) {
             log.error("loop currently {} set to {}", position.getOffset(), sequence, new Exception("please report this should never go backwards"));
         }
         else {
-            position.setOffset(sequence);
+            position.setOffset(sequence, processed);
         }
     }
 
@@ -93,6 +95,7 @@ public class As400OffsetContext implements OffsetContext {
             return Collect.hashMapOf(
                     As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
                     As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
+                    As400OffsetContext.PROCESSED, Boolean.toString(position.processed()),
                     As400OffsetContext.SCHEMA, position.getSchema());
         }
         else {
@@ -100,6 +103,7 @@ public class As400OffsetContext implements OffsetContext {
             return Collect.hashMapOf(
                     As400OffsetContext.EVENT_SEQUENCE, Long.toString(position.getOffset()),
                     As400OffsetContext.JOURNAL_RECEIVER, position.getJournalReciever(),
+                    As400OffsetContext.PROCESSED, Boolean.toString(position.processed()),
                     As400OffsetContext.SCHEMA, position.getSchema());
         }
     }
@@ -178,9 +182,10 @@ public class As400OffsetContext implements OffsetContext {
         public OffsetContext load(Map<String, ?> map) {
             Long offset = Long.valueOf((String) map.get(As400OffsetContext.EVENT_SEQUENCE));
             String receiver = (String) map.get(As400OffsetContext.JOURNAL_RECEIVER);
+            boolean processed = Boolean.valueOf((String) map.get(As400OffsetContext.PROCESSED));
             String schema = (String) map.get(As400OffsetContext.SCHEMA);
 
-            return new As400OffsetContext(connectorConfig, new JournalPosition(offset, receiver, schema));
+            return new As400OffsetContext(connectorConfig, new JournalPosition(offset, receiver, schema, processed));
         }
     }
 
