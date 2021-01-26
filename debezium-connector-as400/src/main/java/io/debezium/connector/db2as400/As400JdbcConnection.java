@@ -161,10 +161,12 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
 
     protected List<String> readPrimaryKeyOrUniqueIndexNames(DatabaseMetaData metadata, TableId id) throws SQLException {
         List<String> pkColumnNames = readPrimaryKeyNames(metadata, id);
-        if (pkColumnNames.isEmpty())
+        if (pkColumnNames.isEmpty()) {
             pkColumnNames = readAs400PrimaryKeys(id);
-        if (pkColumnNames.isEmpty())
+        }
+        if (pkColumnNames.isEmpty()) {
             pkColumnNames = readTableUniqueIndices(metadata, id);
+        }
         return pkColumnNames;
     }
 
@@ -222,8 +224,9 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
                         call.setString(2, longTableName);
                     },
                     singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
-            if (systemName == null)
+            if (systemName == null) {
                 systemName = longTableName;
+            }
             String systemKey = String.format("%s.%s", schemaName, systemName);
             longToSystemName.put(longKey, systemName);
             systemToLongName.put(systemKey, longTableName);
@@ -233,8 +236,9 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
 
     public String getLongName(String schemaName, String systemName) {
         String systemKey = String.format("%s.%s", schemaName, systemName);
-        if (schemaName.isEmpty() || systemName.isEmpty())
+        if (schemaName.isEmpty() || systemName.isEmpty()) {
             return "";
+        }
         if (systemToLongName.containsKey(systemKey)) {
             return systemToLongName.get(systemKey);
         }
@@ -246,8 +250,9 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
                             call.setString(2, systemName);
                         },
                         singleResultMapper(rs -> rs.getString(1).trim(), "Could not retrieve database name"));
-                if (longTableName == null)
+                if (longTableName == null) {
                     longTableName = systemName;
+                }
                 String longKey = String.format("%s.%s", schemaName, longTableName);
                 longToSystemName.put(longKey, systemName);
                 systemToLongName.put(systemKey, longTableName);

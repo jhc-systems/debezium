@@ -138,8 +138,9 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
         if (previousOffset != null && !previousOffset.isSnapshotRunning()) {
             if (previousOffset instanceof As400OffsetContext) {
                 JournalPosition pos = ((As400OffsetContext) previousOffset).getPosition();
-                if (pos.isOffsetSet())
+                if (pos.isOffsetSet()) {
                     return new SnapshottingTask(false, false);
+                }
             }
         }
         return new SnapshottingTask(true, connectorConfig.getSnapshotMode().includeData());

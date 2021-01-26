@@ -26,8 +26,9 @@ public class As400ValueConverters extends JdbcValueConverters {
 
     @Override
     protected Object convertString(Column column, Field fieldDefn, Object data) {
-        if (data == null)
+        if (data == null) {
             return super.convertString(column, fieldDefn, data);
+        }
         if (!(data instanceof SQLXML)) {
             String str = data.toString();
             Pair fixed = removeBadCharacters(str);
@@ -42,8 +43,9 @@ public class As400ValueConverters extends JdbcValueConverters {
     }
 
     public static Pair removeBadCharacters(String rawString) {
-        if (rawString == null)
+        if (rawString == null) {
             return new Pair(false, rawString);
+        }
         StringBuilder newString = new StringBuilder(rawString.length());
         boolean modified = false;
         for (int offset = 0; offset < rawString.length();) {

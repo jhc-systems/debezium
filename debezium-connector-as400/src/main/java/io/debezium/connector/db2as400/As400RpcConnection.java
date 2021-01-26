@@ -77,11 +77,14 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
             boolean success = r.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
             if (success) {
+                if (!position.processThis()) {
+                    r.nextEntry();
+                }
                 while (r.nextEntry()) {
                     foundData = true;
                     try {
                         EntryHeader eheader = r.getEntryHeader();
-                        Long currentOffset = eheader.getSequenceNumber() + 1;
+                        Long currentOffset = eheader.getSequenceNumber();
 
                         consumer.accept(currentOffset, r, eheader);
                         offsetCtx.setSequence(currentOffset);
@@ -106,8 +109,9 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                 }
             }
 
-            if (!foundData)
+            if (!foundData) {
                 nodataConsumer.accept();
+            }
 
         }
         catch (Exception e) {
