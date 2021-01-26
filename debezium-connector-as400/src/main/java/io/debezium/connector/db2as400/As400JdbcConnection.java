@@ -106,10 +106,10 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
         try (final ResultSet rs = metadata.getTables(databaseCatalog, schemaNamePattern, null,
                 new String[]{ "VIEW", "MATERIALIZED VIEW", "TABLE" })) {
             while (rs.next()) {
-                final String catalogName = rs.getString(1);
-                final String schemaName = rs.getString(2);
-                final String tableName = rs.getString(3);
-                final String tableType = rs.getString(4);
+                final String catalogName = rs.getString(1).trim();
+                final String schemaName = rs.getString(2).trim();
+                final String tableName = rs.getString(3).trim();
+                final String tableType = rs.getString(4).trim();
                 if ("TABLE".equals(tableType)) {
                     totalTables++;
                     TableId tableId = new TableId(catalogName, schemaName, tableName);
