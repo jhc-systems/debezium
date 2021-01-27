@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.db2as400;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
@@ -118,6 +119,9 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                     });
                     break;
                 }
+                catch (IOException e) {
+                    log.error("IO exception error treating as transient position {}", offsetContext.getPosition().toString(), ex);
+                }
                 catch (Exception e) {
                     ex = e;
                 }
@@ -129,7 +133,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         }
     }
 
-    private BlockingRecieverConsumer processJournalEntries() {
+    private BlockingRecieverConsumer processJournalEntries() throws IOException {
         return (nextOffset, r, eheader) -> {
             try {
                 String longName = jdbcConnection.getLongName(eheader.getLibrary(), eheader.getFile());
@@ -238,9 +242,11 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                         break;
                 }
             }
+            catch (IOException e) {
+                throw e;
+            }
             catch (Exception e) {
-                e.printStackTrace();
-                throw new RpcException("", e);
+                throw new RpcException("Failed to process record", e);
             }
         };
     }

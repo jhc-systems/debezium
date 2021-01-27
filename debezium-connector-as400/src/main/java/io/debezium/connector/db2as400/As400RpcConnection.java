@@ -24,6 +24,7 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
 
     private As400ConnectorConfig config;
     private JournalLib journalLibrary;
+    private RetrieveJournal retrieveJournal;
     private AS400 as400;
 
     public As400RpcConnection(As400ConnectorConfig config) {
@@ -31,6 +32,7 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
         this.config = config;
         try {
             journalLibrary = JournalInfoRetrieval.getJournal(connection(), config.getSchema());
+            retrieveJournal = new RetrieveJournal(this, journalLibrary, config.getSchema());
         }
         catch (IOException e) {
             log.error("Failed to fetch library", e);
@@ -72,23 +74,22 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
         RpcException exception = null;
         try {
             boolean foundData = false;
-            RetrieveJournal r = new RetrieveJournal(connection(), journalLibrary, config.getSchema());
             JournalPosition position = offsetCtx.getPosition();
-            boolean success = r.retrieveJournal(position);
+            boolean success = retrieveJournal.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
             if (success) {
                 if (position.processed()) {
-                    r.nextEntry();
+                    retrieveJournal.nextEntry();
                 }
-                while (r.nextEntry()) {
+                while (retrieveJournal.nextEntry()) {
                     foundData = true;
                     try {
-                        EntryHeader eheader = r.getEntryHeader();
+                        EntryHeader eheader = retrieveJournal.getEntryHeader();
                         Long currentOffset = eheader.getSequenceNumber();
 
-                        consumer.accept(currentOffset, r, eheader);
+                        consumer.accept(currentOffset, retrieveJournal, eheader);
                         // if there's no more data we have to stay on the current offset or we get an error
-                        if (r.hasMoreJournalData()) {
+                        if (retrieveJournal.hasMoreJournalData()) {
                             position.setOffset(currentOffset + 1, false);
                         }
                         else {
@@ -104,8 +105,8 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                         }
                     }
                 }
-                if (r.hasMoreJournalData()) {
-                    EntryHeader eheader = r.getEntryHeader();
+                if (retrieveJournal.hasMoreJournalData()) {
+                    EntryHeader eheader = retrieveJournal.getEntryHeader();
                     Long currentOffset = eheader.getSequenceNumber();
                     offsetCtx.setSequence(currentOffset + 1, false);
                 }
@@ -131,7 +132,7 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
     }
 
     public static interface BlockingRecieverConsumer {
-        void accept(Long offset, RetrieveJournal r, EntryHeader eheader) throws RpcException, InterruptedException;
+        void accept(Long offset, RetrieveJournal r, EntryHeader eheader) throws RpcException, InterruptedException, IOException;
     }
 
     public static interface BlockingNoDataConsumer {
