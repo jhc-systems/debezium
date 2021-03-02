@@ -96,7 +96,12 @@ public class As400SnapshotChangeEventSource extends RelationalSnapshotChangeEven
 
         for (TableId id : snapshotContext.capturedTables) {
             Table table = snapshotContext.tables.forTable(id);
-            schema.addSchema(table);
+            if (table == null) {
+                log.error("table schema not found for {}", id, new Exception("missing table definition"));
+            }
+            else {
+                schema.addSchema(table);
+            }
         }
         // System.out.println(snapshotContext.tables);
     }

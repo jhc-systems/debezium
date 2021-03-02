@@ -22,10 +22,21 @@ import com.ibm.as400.access.AS400;
 public class JournalInfoRetrievalTest {
 
     @Test
-    public void test() throws Exception {
-        AS400 as400 = new AS400("tracey", "msdev", "msdev");
+    public void findJournal() throws Exception {
+        AS400 as400 = new AS400("tracey.servers.jhc.co.uk", "msdev", "msdev");
 
-        JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, new JournalLib("QSQJRN", "MSDEVT"));
+        JournalLib journalLibrary = JournalInfoRetrieval.getJournal(as400, "MSDEVT");
+        assertThat(journalLibrary.journal, not(emptyOrNullString()));
+        assertThat(journalLibrary.lib, not(emptyOrNullString()));
+
+    }
+
+    @Test
+    public void findPosition() throws Exception {
+        AS400 as400 = new AS400("tracey.servers.jhc.co.uk", "msdev", "msdev");
+
+        JournalLib journalLibrary = JournalInfoRetrieval.getJournal(as400, "MSDEVT");
+        JournalPosition position = JournalInfoRetrieval.getCurrentPosition(as400, journalLibrary);
         assertThat(position, is(notNullValue()));
         assertThat(position.getJournalReciever(), not(emptyOrNullString()));
         assertThat(position.getSchema(), not(emptyOrNullString()));

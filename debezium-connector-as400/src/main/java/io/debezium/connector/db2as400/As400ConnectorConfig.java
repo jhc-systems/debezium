@@ -102,7 +102,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
 
         @Override
         public boolean isIncluded(TableId t) {
-            return !(t.schema().toLowerCase().equals("QSYS2")); // TODO
+            return !(t.schema().toLowerCase().equals("QSYS2") || t.schema().toLowerCase().equals("QSYS")); // TODO
         }
     }
 
