@@ -42,6 +42,7 @@ import io.debezium.util.Metronome;
  * </p>
  */
 public class As400StreamingChangeEventSource implements StreamingChangeEventSource {
+    private static final int MAX_RETRIES = 5;
     private static final String NO_TRANSACTION_ID = "00000000000000000000";
     private JournalEntryDeocder<Object[]> fileDecoder;
 
@@ -111,16 +112,13 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         // Integer offset = offsetContext.getSequence();
         while (context.isRunning()) {
             Exception ex = null;
-            for (int i = 0; i < 5 && context.isRunning(); i++) { // allow retries
+            for (int i = 0; i < MAX_RETRIES && context.isRunning() && (i == 0 || ex != null); i++) { // allow retries
+                ex = null;
                 try {
-                    dataConnection.getJournalEntries(offsetContext, processJournalEntries(), () -> {
+                    if (!dataConnection.getJournalEntries(offsetContext, processJournalEntries())) {
                         log.debug("sleep");
                         metronome.pause();
-                    });
-                    break;
-                }
-                catch (IOException e) {
-                    log.error("IO exception error treating as transient position {}", offsetContext.getPosition().toString(), ex);
+                    }
                 }
                 catch (Exception e) {
                     ex = e;

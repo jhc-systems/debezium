@@ -70,12 +70,14 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
         }
     }
 
-    public void getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer, BlockingNoDataConsumer nodataConsumer) throws RpcException {
+    public boolean getJournalEntries(As400OffsetContext offsetCtx, BlockingRecieverConsumer consumer)
+            throws RpcException {
         RpcException exception = null;
+        boolean foundData = false;
         try {
-            boolean foundData = false;
+            boolean success = false;
             JournalPosition position = offsetCtx.getPosition();
-            boolean success = retrieveJournal.retrieveJournal(position);
+            success = retrieveJournal.retrieveJournal(position);
             log.debug("QjoRetrieveJournalEntries at {} result {}", position, success);
             if (success) {
                 if (position.processed()) {
@@ -88,7 +90,8 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                         Long currentOffset = eheader.getSequenceNumber();
 
                         consumer.accept(currentOffset, retrieveJournal, eheader);
-                        // if there's no more data we have to stay on the current offset or we get an error
+                        // if there's no more data we have to stay on the current offset or we get an
+                        // error
                         if (retrieveJournal.hasMoreJournalData()) {
                             position.setOffset(currentOffset + 1, false);
                         }
@@ -105,30 +108,31 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                         }
                     }
                 }
+                EntryHeader eheader = retrieveJournal.getEntryHeader();
+                Long currentOffset = eheader.getSequenceNumber();
                 if (retrieveJournal.hasMoreJournalData()) {
-                    EntryHeader eheader = retrieveJournal.getEntryHeader();
-                    Long currentOffset = eheader.getSequenceNumber();
                     offsetCtx.setSequence(currentOffset + 1, false);
+                }
+                else {
+                    offsetCtx.setSequence(currentOffset, true);
                 }
             }
             else {
                 JournalInfo journalNow = JournalInfoRetrieval.getReceiver(connection(), journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
                 if (!journalNow.receiver.equals(lastOffset.getJournalReciever())) {
-                    log.error("Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset",
+                    log.error(
+                            "Lost data, we can't find any data for journal {} but we are now on new journal {} restarting with blank journal and offset",
                             journalNow.receiver, lastOffset.getJournal());
                     offsetCtx.setJournalReciever(null, null);
                 }
-            }
-
-            if (!foundData) {
-                nodataConsumer.accept();
             }
 
         }
         catch (Exception e) {
             throw new RpcException("Failed to process record", e);
         }
+        return foundData;
     }
 
     public static interface BlockingRecieverConsumer {
