@@ -127,7 +127,8 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
 
         Map<TableId, List<Column>> columnsByTable = new HashMap<>();
 
-        if (totalTables == tableIds.size() || config.getBoolean(RelationalDatabaseConnectorConfig.SNAPSHOT_FULL_COLUMN_SCAN_FORCE)) {
+        // TODO add back || config.getBoolean(RelationalDatabaseConnectorConfig.SNAPSHOT_FULL_COLUMN_SCAN_FORCE)
+        if (totalTables == tableIds.size() ) {
             columnsByTable = getColumnsDetails(databaseCatalog, schemaNamePattern, null, tableFilter, columnFilter,
                     metadata, viewIds);
         }
