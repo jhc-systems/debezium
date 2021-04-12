@@ -21,7 +21,7 @@
 		<dependency>
 			<groupId>journal.db2.fnz.com</groupId>
 			<artifactId>journal-parsing</artifactId>
-			<version>0.0.1</version>
+			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>

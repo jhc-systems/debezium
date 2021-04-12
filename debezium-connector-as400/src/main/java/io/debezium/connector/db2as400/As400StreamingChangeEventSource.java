@@ -20,8 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fnz.db2.journal.retrieve.JdbcFileDecoder;
 import com.fnz.db2.journal.retrieve.JournalEntryDeocder;
-import com.fnz.db2.journal.retrieve.JournalReciever;
-import com.fnz.db2.journal.retrieve.JournalRecordDecoder;
 import com.fnz.db2.journal.retrieve.SchemaCacheIF;
 
 import io.debezium.connector.db2as400.As400RpcConnection.BlockingRecieverConsumer;
@@ -110,23 +108,25 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
         final Metronome metronome = Metronome.sleeper(pollInterval, clock);
         // Integer offset = offsetContext.getSequence();
+        int retries = 0;
+        Exception ex = null;
         while (context.isRunning()) {
-            Exception ex = null;
-            for (int i = 0; i < MAX_RETRIES && context.isRunning() && (i == 0 || ex != null); i++) { // allow retries
+            try {
+                if (!dataConnection.getJournalEntries(offsetContext, processJournalEntries())) {
+                    log.debug("sleep");
+                    metronome.pause();
+                }
                 ex = null;
-                try {
-                    if (!dataConnection.getJournalEntries(offsetContext, processJournalEntries())) {
-                        log.debug("sleep");
-                        metronome.pause();
-                    }
-                }
-                catch (Exception e) {
-                    ex = e;
-                }
+                retries = 0;
             }
-            if (ex != null) {
-                log.error("failed to process offset {}", offsetContext.getPosition().toString(), ex);
-                errorHandler.setProducerThrowable(ex);
+            catch (Exception e) {
+                retries++;
+                ex = e;
+            }
+            if (ex != null && retries % MAX_RETRIES == 0) {
+                log.error("failed to process offset {} retry {}", offsetContext.getPosition().toString(), retries, ex);
+                metronome.pause();
+                // errorHandler.setProducerThrowable(ex);
             }
         }
     }
@@ -233,11 +233,11 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
                                 new As400ChangeRecordEmitter(offsetContext, Operation.DELETE, dataBefore, null, clock));
                     }
                         break;
-                    case "J.NR": {
-                        JournalReciever startReciever = r.decode(new JournalRecordDecoder());
-                        offsetContext.setJournalReciever(startReciever.getReciever(), startReciever.getLibrary());
-                    }
-                        break;
+                    // case "J.NR": {
+                    // JournalReciever startReciever = r.decode(new JournalRecordDecoder());
+                    // offsetContext.setJournalReciever(startReciever.getReciever(), startReciever.getLibrary());
+                    // }
+                    // break;
                 }
             }
             catch (IOException e) {

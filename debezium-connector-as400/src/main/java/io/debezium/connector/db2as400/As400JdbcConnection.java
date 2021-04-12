@@ -28,7 +28,6 @@ import io.debezium.config.Configuration;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
-import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.Tables.ColumnNameFilter;
@@ -128,7 +127,7 @@ public class As400JdbcConnection extends JdbcConnection implements Connect<Conne
         Map<TableId, List<Column>> columnsByTable = new HashMap<>();
 
         // TODO add back || config.getBoolean(RelationalDatabaseConnectorConfig.SNAPSHOT_FULL_COLUMN_SCAN_FORCE)
-        if (totalTables == tableIds.size() ) {
+        if (totalTables == tableIds.size()) {
             columnsByTable = getColumnsDetails(databaseCatalog, schemaNamePattern, null, tableFilter, columnFilter,
                     metadata, viewIds);
         }

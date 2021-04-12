@@ -22,6 +22,7 @@ import io.debezium.config.Field;
 import io.debezium.connector.SourceInfoStructMaker;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
+// import io.debezium.relational.ColumnFilterMode;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.Selectors.TableIdToStringMapper;
 import io.debezium.relational.TableId;
