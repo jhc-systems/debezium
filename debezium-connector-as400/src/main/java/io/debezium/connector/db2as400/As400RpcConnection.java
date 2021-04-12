@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fnz.db2.journal.retrieve.Connect;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval;
+import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalInfo;
 import com.fnz.db2.journal.retrieve.JournalInfoRetrieval.JournalLib;
 import com.fnz.db2.journal.retrieve.JournalPosition;
 import com.fnz.db2.journal.retrieve.RetrieveJournal;
@@ -61,8 +62,10 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
 
     public JournalPosition getCurrentPosition() throws RpcException {
         try {
-            return JournalInfoRetrieval.getCurrentPosition(connection(), journalLibrary);
-            // return new JournalPosition(null, null, null);
+            JournalPosition position = JournalInfoRetrieval.getCurrentPosition(connection(), journalLibrary);
+
+            // ignore the journal receiver just use the offset
+            return new JournalPosition(position.getOffset(), null, null, true);
         }
         catch (Exception e) {
             throw new RpcException("Failed to find offset", e);
@@ -106,12 +109,13 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                 offsetCtx.setSequence(currentOffset, true);
             }
             else {
-                // JournalInfo journalNow = JournalInfoRetrieval.getReceiver(connection(), journalLibrary);
+                JournalInfo journalNow = JournalInfoRetrieval.getReceiver(connection(), journalLibrary);
                 JournalPosition lastOffset = offsetCtx.getPosition();
                 // if (lastOffset.getJournalReciever() != null && !journalNow.receiver.equals(lastOffset.getJournalReciever())) {
                 // log.warn("journal reciever doesn't match at position {} we have journal {} and latest is {} ", position,
                 // lastOffset.getJournalReciever(), journalNow.receiver);
-                log.error("Lost data at {}, we can't find any data for journal {} restarting with blank journal and offset", position);
+                log.error("Lost data at {}, we can't find any data for journal {} restarting with blank journal and offset (current journal is {})", position,
+                        journalNow);
                 offsetCtx.setJournalReciever(null, null);
                 // }
             }
