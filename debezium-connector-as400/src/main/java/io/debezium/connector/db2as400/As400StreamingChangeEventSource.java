@@ -113,7 +113,7 @@ public class As400StreamingChangeEventSource implements StreamingChangeEventSour
         while (context.isRunning()) {
             try {
                 if (!dataConnection.getJournalEntries(offsetContext, processJournalEntries())) {
-                    log.debug("sleep");
+                    log.info("sleep");
                     metronome.pause();
                 }
                 ex = null;

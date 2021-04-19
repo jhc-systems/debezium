@@ -45,10 +45,11 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
     }
 
     public AS400 connection() throws IOException {
-        if (as400 == null || !as400.isConnectionAlive()) {
-            log.debug("create new as400 connection");
+        if (as400 == null || !as400.isConnectionAlive(AS400.COMMAND)) {
+            log.info("create new as400 connection");
             try {
                 // need to both create a new object and connect
+                disconnect();
                 this.as400 = new AS400(config.getHostName(), config.getUser(), config.getPassword());
                 as400.connectService(AS400.COMMAND);
             }
@@ -58,6 +59,15 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
             }
         }
         return as400;
+    }
+
+    private void disconnect() {
+        try {
+            as400.disconnectAllServices();
+            as400 = null;
+        }
+        catch (Exception e) {
+        }
     }
 
     public JournalPosition getCurrentPosition() throws RpcException {
@@ -114,8 +124,7 @@ public class As400RpcConnection implements AutoCloseable, Connect<AS400, IOExcep
                 // if (lastOffset.getJournalReciever() != null && !journalNow.receiver.equals(lastOffset.getJournalReciever())) {
                 // log.warn("journal reciever doesn't match at position {} we have journal {} and latest is {} ", position,
                 // lastOffset.getJournalReciever(), journalNow.receiver);
-                log.error("Lost data at {}, we can't find any data for journal {} restarting with blank journal and offset (current journal is {})", position,
-                        journalNow);
+                log.error("Lost journal at position {}. Restarting with blank journal and offset ( current journal is {} )", position, journalNow);
                 offsetCtx.setJournalReciever(null, null);
                 // }
             }
