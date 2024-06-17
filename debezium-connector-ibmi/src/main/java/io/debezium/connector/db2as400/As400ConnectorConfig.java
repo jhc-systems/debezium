@@ -46,7 +46,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
      * A field for the password to connect to the AS400. This field has no default
      * value.
      */
-    public static final Field SCHEMA = Field.create("database.schema", "schema holding tables to capture");
+    public static final Field SCHEMA = Field.create(DATABASE_CONFIG_PREFIX + "schema", "schema holding tables to capture");
 
     /**
      * A field for the size of buffer for fetching journal entries default 65535 (should not be smaller)
@@ -63,27 +63,27 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     /**
      * keep alive flag, should the driver use a secure connection defaults to false
      */
-    public static final Field SECURE = Field.create("secure", "secure", "use secure connection", true);
+    public static final Field SECURE = Field.create(DATABASE_CONFIG_PREFIX + "secure", "secure", "use secure connection", true);
 
     /**
      * threads should be used in communication with the host servers - timeouts might not work as expected when true - default false
      */
-    public static final Field THREAD_USED = Field.create("thread.used", "thread used - timeouts might not work as expected when true",
+    public static final Field THREAD_USED = Field.create(DATABASE_CONFIG_PREFIX + "thread.used", "thread used - timeouts might not work as expected when true",
             "thread used", false);
 
     /**
      * The timeout to use for sockets
      */
-    public static final Field SOCKET_TIMEOUT = Field.create("socket.timeout", "socket timeout in milliseconds", "socket timeout", 0);
+    public static final Field SOCKET_TIMEOUT = Field.create(DATABASE_CONFIG_PREFIX + "socket.timeout", "socket timeout in milliseconds", "socket timeout", 0);
 
     /**
      * If the ccsid is wrong on your tables and that is the least of your problems - just correct the CCSID before using this or as a last resort...
      * This applies to all tables - everything
      * mapping from_ccsid and to_ccsid must *both* be specified
      */
-    public static final Field FROM_CCSID = Field.create("from.ccsid", "from ccsid", "when the table indicates this from_ccsid translate to the to_ccsid setting", -1);
+    public static final Field FROM_CCSID = Field.create(DATABASE_CONFIG_PREFIX + "from.ccsid", "from ccsid", "when the table indicates this from_ccsid translate to the to_ccsid setting", -1);
 
-    public static final Field TO_CCSID = Field.create("to.ccsid", "to ccsid", "when the table indicates the from_ccsid translate to this to_ccsid setting", -1);
+    public static final Field TO_CCSID = Field.create(DATABASE_CONFIG_PREFIX + "to.ccsid", "to ccsid", "when the table indicates the from_ccsid translate to this to_ccsid setting", -1);
 
     public static final Field DIAGNOSTICS_FOLDER = Field.create("diagnostics.folder",
             "folder to dump failed decodings to", "used when there is a decoding failure to aid diagnostics");
@@ -94,7 +94,7 @@ public class As400ConnectorConfig extends RelationalDatabaseConnectorConfig {
     public static final Field MAX_SERVER_SIDE_ENTRIES = Field.create("max.entries", "max server side entries",
             "Maximum number of journal entries to process server side when filtering", RetrieveConfig.DEFAULT_MAX_SERVER_SIDE_ENTRIES);
 
-    public static final Field DATE_FORMAT = Field.create("date.format", "date format",
+    public static final Field DATE_FORMAT = Field.create(DATABASE_CONFIG_PREFIX + "date.format", "date format",
             "default date format is 2 digit date 1940->2039 set this to 'iso' or make sure you only have dates in this range, performance is ambysmal if you don't not to mention lots of missing data",
             "iso");
 
