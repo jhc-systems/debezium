@@ -10,7 +10,7 @@
 
     <groupId>io.debezium</groupId>
     <artifactId>debezium-build-parent</artifactId>
-    <version>3.0.1.Final</version>
+    <version>3.0.1.Final_JHC1</version>
     <name>Debezium Build Aggregator</name>
     <description>Debezium is an open source change data capture platform</description>
     <packaging>pom</packaging>
@@ -183,7 +183,11 @@
     <modules>
         <module>debezium-bom</module>
         <module>debezium-parent</module>
-        <module>support/checkstyle</module>
+        <module>debezium-connector-jdbc</module>
+        <module>support/ide-configs</module>
+	<module>support/checkstyle</module>
+        <module>support/revapi</module>
+	<!--<module>support/checkstyle</module>
         <module>support/ide-configs</module>
         <module>support/revapi</module>
         <module>debezium-api</module>
@@ -211,6 +215,7 @@
         <module>debezium-schema-generator</module>
         <module>debezium-storage</module>
         <module>debezium-interceptor</module>
+	-->
     </modules>
 
     <distributionManagement>
