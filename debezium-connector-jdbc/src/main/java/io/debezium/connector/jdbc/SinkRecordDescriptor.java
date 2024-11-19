@@ -94,14 +94,17 @@ public class SinkRecordDescriptor {
     }
 
     public boolean isDelete() {
+
         if (!isDebeziumSinkRecord()) {
-            return record.value() == null;
+            return (record.value() == null);
         }
-        else if (record.value() != null) {
+        else if (record.value() == null) {
+            return true;
+        }
+        else {
             final Struct value = (Struct) record.value();
             return Operation.DELETE.equals(Operation.forCode(value.getString(Envelope.FieldName.OPERATION)));
         }
-        return false;
     }
 
     public boolean isTruncate() {
@@ -154,6 +157,9 @@ public class SinkRecordDescriptor {
     }
 
     public Struct getAfterStruct() {
+        if (isTombstone()) {
+            return ((Struct) record.key());
+        }
         if (isDebeziumSinkRecord()) {
             return ((Struct) record.value()).getStruct(Envelope.FieldName.AFTER);
         }

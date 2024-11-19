@@ -95,8 +95,26 @@ public class JdbcChangeEventSink implements ChangeEventSink {
             final TableId tableId = optionalTableId.get();
 
             if (sinkRecordDescriptor.isTombstone()) {
-                // Skip only Debezium Envelope tombstone not the one produced by ExtractNewRecordState SMT
-                LOGGER.debug("Skipping tombstone record {}", sinkRecordDescriptor);
+                LOGGER.debug("processing tombstone record {}", sinkRecordDescriptor);
+
+                if (!config.isDeleteEnabled()) {
+                    LOGGER.debug("Deletes are not enabled, skipping delete for topic '{}'", sinkRecordDescriptor.getTopicName());
+                    continue;
+                }
+
+                if (updateBufferByTable.get(tableId) != null && !updateBufferByTable.get(tableId).isEmpty()) {
+                    // When an delete arrives, update buffer must be flushed to avoid losing an
+                    // delete for the same record after its update.
+
+                    flushBufferWithRetries(tableId, updateBufferByTable.get(tableId).flush());
+                }
+
+                Buffer tableIdBuffer = resolveBuffer(deleteBufferByTable, tableId, sinkRecordDescriptor);
+
+                List<SinkRecordDescriptor> toFlush = tableIdBuffer.add(sinkRecordDescriptor);
+
+                flushBufferWithRetries(tableId, toFlush);
+
                 continue;
             }
 
