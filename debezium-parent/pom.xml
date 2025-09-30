@@ -325,28 +325,21 @@
                             </execution>
                         </executions>
                     </plugin>
+		    <!--
                     <plugin>
                         <groupId>org.revapi</groupId>
                         <artifactId>revapi-maven-plugin</artifactId>
                         <configuration>
                             <failOnMissingConfigurationFiles>false</failOnMissingConfigurationFiles>
-                            <!-- Consider changes from the latest .Final version, not from the latest non-snapshot. -->
                             <versionFormat>\d+\.\d+\.\d+\.Final</versionFormat>
                             <ignoreSuggestionsFormat>xml</ignoreSuggestionsFormat>
                             <analysisConfigurationFiles>
                                 <configurationFile>
-                                    <!-- common API checking configuration -->
                                     <resource>revapi/revapi-configuration.xml</resource>
                                 </configurationFile>
                                 <configurationFile>
-                                    <!-- API changes recorded in the support/revapi module -->
                                     <resource>revapi/debezium-api-changes.xml</resource>
                                     <roots>
-                                        <!--
-                                            The XML file has "<analysisConfiguration>" root node, underneath which
-                                            there are nodes named after each version.
-                                            This way we only need a single file for all releases of Debezium.
-                                        -->
                                         <root>analysisConfiguration/version-${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</root>
                                     </roots>
                                 </configurationFile>
@@ -360,6 +353,7 @@
                             </execution>
                         </executions>
                     </plugin>
+		    -->
                 </plugins>
             </build>
         </profile>

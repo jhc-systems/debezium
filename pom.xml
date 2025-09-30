@@ -331,6 +331,7 @@
                     <releaseProfiles>docs,assembly,release-sign-artifacts,release</releaseProfiles>
                 </configuration>
             </plugin>
+	    <!--
             <plugin>
                   <groupId>org.sonatype.central</groupId>
                   <artifactId>central-publishing-maven-plugin</artifactId>
@@ -345,6 +346,7 @@
                         <waitPollingInterval>${publish.poll.interval}</waitPollingInterval>
                   </configuration>
             </plugin>
+	    -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
