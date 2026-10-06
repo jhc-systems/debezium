@@ -10,7 +10,7 @@
 
     <groupId>io.debezium</groupId>
     <artifactId>debezium-build-parent</artifactId>
-    <version>3.7.0.Final</version>
+    <version>3.7.0.Final_FNZ1</version>
     <name>Debezium Build Aggregator</name>
     <description>Debezium is an open source change data capture platform</description>
     <packaging>pom</packaging>
@@ -347,6 +347,7 @@
                     <releaseProfiles>docs,assembly,release-sign-artifacts,release</releaseProfiles>
                 </configuration>
             </plugin>
+            <!--
             <plugin>
                   <groupId>org.sonatype.central</groupId>
                   <artifactId>central-publishing-maven-plugin</artifactId>
@@ -361,6 +362,7 @@
                         <waitPollingInterval>${publish.poll.interval}</waitPollingInterval>
                   </configuration>
             </plugin>
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
